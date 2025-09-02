@@ -1,0 +1,41 @@
+serial:
+  baudrate: 115200
+  timeout: 1.0
+  read_timeout: 0.1
+  write_timeout: 0.5
+  bytesize: 8
+  parity: 'N'
+  stopbits: 1
+
+data:
+  buffer_size: 10000  # Increased buffer size
+  format: 'ascii'  # Options: ascii, binary
+  delimiter: ','  # Changed to comma for proper parsing
+  encoding: 'utf-8'
+
+lsl:
+  stream_name: 'ArduinoBLE33'
+  stream_type: 'Sensor'
+  channel_count: 6
+  nominal_rate: 100.0
+  channel_format: 'float32'
+  source_id: 'arduino_ble33_001'
+
+mock:
+  enabled: false
+  data_rate: 100  # Hz
+  pattern: 'sine'  # Options: sine, random, constant
+  channels: 6
+  amplitude: 100.0
+  offset: 0.0
+
+display:
+  update_rate: 10  # Hz
+  show_timestamp: true
+  show_raw: false
+  buffer_display: 20  # Number of lines to display
+
+logging:
+  level: 'INFO'
+  file: 'arduino_com.log'
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
