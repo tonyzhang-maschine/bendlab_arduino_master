@@ -16,7 +16,7 @@ data:
 lsl:
   stream_name: 'ArduinoBLE33'
   stream_type: 'Sensor'
-  channel_count: 6
+  channel_count: 1
   nominal_rate: 100.0
   channel_format: 'float32'
   source_id: 'arduino_ble33_001'
@@ -25,7 +25,7 @@ mock:
   enabled: false
   data_rate: 100  # Hz
   pattern: 'sine'  # Options: sine, random, constant
-  channels: 6
+  channels: 1
   amplitude: 100.0
   offset: 0.0
 
