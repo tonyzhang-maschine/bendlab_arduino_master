@@ -2,6 +2,7 @@ import time
 import threading
 import logging
 from typing import Optional, Dict, Any, List
+from collections import deque
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
@@ -21,7 +22,12 @@ class CLIDisplay:
         self.show_raw = self.config.get('show_raw', False)
         self.update_rate = self.config.get('update_rate', 10)
         
-        self.data_buffer = []
+        # Get rolling buffer size from data config or use default
+        data_config = config.get('data', {})
+        self.rolling_buffer_size = data_config.get('rolling_buffer_size', 10000)
+        
+        # Initialize deque with maxlen for automatic rolling buffer
+        self.data_buffer = deque(maxlen=self.rolling_buffer_size)
         self.stats = {
             'total_packets': 0,
             'data_rate': 0.0,
@@ -104,7 +110,9 @@ class CLIDisplay:
             # Fall back to raw data column
             data_table.add_column("Raw Data", style="cyan")
         
-        for data in self.data_buffer[-self.buffer_size:]:
+        # Convert deque to list and get last buffer_size items for display
+        display_items = list(self.data_buffer)[-self.buffer_size:]
+        for data in display_items:
             row = []
             
             if self.show_timestamp:
@@ -125,9 +133,8 @@ class CLIDisplay:
         return Panel(data_table, title="Data Stream", border_style="blue")
     
     def update_data(self, data):
+        # Deque automatically handles rolling buffer - removes oldest when maxlen reached
         self.data_buffer.append(data)
-        if len(self.data_buffer) > self.buffer_size * 2:
-            self.data_buffer = self.data_buffer[-self.buffer_size:]
         
         self.stats['total_packets'] += 1
         
@@ -142,6 +149,7 @@ class CLIDisplay:
         self.stats['port'] = port
     
     def clear_buffer(self):
+        # Clear deque buffer
         self.data_buffer.clear()
         self.stats['total_packets'] = 0
         self.stats['data_rate'] = 0.0
@@ -200,6 +208,9 @@ class LSLOutput:
         try:
             if hasattr(data, 'parsed_values') and data.parsed_values:
                 self.outlet.push_sample(data.parsed_values, data.timestamp)
+
+                # print(f"Sent LSL data: {data.parsed_values} at timestamp: {data.timestamp}")
+                # input("Press Enter to continue...")
                 return True
             return False
             

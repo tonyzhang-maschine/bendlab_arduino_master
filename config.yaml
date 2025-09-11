@@ -8,7 +8,8 @@ serial:
   stopbits: 1
 
 data:
-  buffer_size: 10000  # Increased buffer size
+  buffer_size: 1000  # Increased buffer size
+  rolling_buffer_size: 1000  # Maximum points to keep in rolling queue
   format: 'ascii'  # Options: ascii, binary
   delimiter: ','  # Changed to comma for proper parsing
   encoding: 'utf-8'

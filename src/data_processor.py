@@ -21,8 +21,9 @@ class DataProcessor:
         self.config = config
         self.processing_thread: Optional[threading.Thread] = None
         self.stop_event = threading.Event()
-        self.input_queue = queue.Queue(maxsize=config.get('data', {}).get('buffer_size', 1000))
-        self.output_queue = queue.Queue(maxsize=config.get('data', {}).get('buffer_size', 1000))
+        # Use unlimited queue size to prevent blocking
+        self.input_queue = queue.Queue()
+        self.output_queue = queue.Queue()
         self.process_callback: Optional[Callable] = None
         self.error_callback: Optional[Callable] = None
         self.is_running = False
@@ -59,13 +60,9 @@ class DataProcessor:
                 data_packet = self.input_queue.get(timeout=0.1)
                 processed = self._process_data_packet(data_packet)
                 if processed:
-                    try:
-                        self.output_queue.put_nowait(processed)
-                        if self.process_callback:
-                            self.process_callback(processed)
-                    except queue.Full:
-                        self.output_queue.get_nowait()
-                        self.output_queue.put_nowait(processed)
+                    self.output_queue.put_nowait(processed)
+                    if self.process_callback:
+                        self.process_callback(processed)
                         
             except queue.Empty:
                 continue
@@ -164,13 +161,9 @@ class DataProcessor:
         try:
             self.input_queue.put_nowait(data_packet)
             return True
-        except queue.Full:
-            try:
-                self.input_queue.get_nowait()
-                self.input_queue.put_nowait(data_packet)
-                return True
-            except:
-                return False
+        except Exception as e:
+            logger.error(f"Failed to add data to queue: {e}")
+            return False
     
     def get_processed_data(self, timeout: float = 0.1) -> Optional[ProcessedData]:
         try:
