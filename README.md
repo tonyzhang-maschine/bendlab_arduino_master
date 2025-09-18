@@ -2,6 +2,22 @@
 
 A robust Python application for capturing, displaying, and streaming serial data from Arduino BLE 33 devices connected via USB. Features real-time visualization, Lab Streaming Layer (LSL) integration, and mock data generation for testing.
 
+
+```
+IMPORTANT NOTICE:
+
+In config.yaml, specify the correct delimiter for proper LSL data transfer
+
+data:
+  buffer_size: 1000  # Increased buffer size
+  rolling_buffer_size: 1000  # Maximum points to keep in rolling queue
+  format: 'ascii'  # Options: ascii, binary
+  delimiter: ','  # Use ',' for MOCK data, use ' ' (space) for real bendlab data
+  encoding: 'utf-8'
+
+```
+
+
 ## Features
 
 - **Automatic Arduino Detection**: Auto-detects Arduino devices connected via USB
