@@ -5,16 +5,17 @@ Real-time pressure visualization system for the JQ Glove (织物电子皮肤/Fab
 
 **Device:** JQ20-XL-11 Left Hand Glove (136 sensing points)  
 **Manufacturer:** 威海矩侨精密 (Weihai JQ Industries Technology Co., Ltd)  
-**Status:** ✅ **MVP v1.2 Production Ready** - All critical issues resolved!
+**Status:** ✅ **MVP v1.2 Production Ready** - Core functionality working, with documented performance limitations
 
 ---
 
 ## 📖 **Quick Links**
 
-- 🚀 **[QUICK_START.md](QUICK_START.md)** - How to run the application
-- 📊 **[STATUS.md](STATUS.md)** - ⭐ **Current status and known issues**
-- 📚 **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete documentation index
-- 🏗️ **[realtime_vis_plan.md](realtime_vis_plan.md)** - Architecture and design
+- 🚀 **[docs/QUICK_START.md](docs/QUICK_START.md)** - How to run the application
+- 📊 **[docs/STATUS.md](docs/STATUS.md)** - ⭐ **Current status and resolved issues**
+- ⚠️ **[docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md)** - ⭐ **Performance limitations and optimization roadmap**
+- 📚 **[docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md)** - Complete documentation index
+- 🏗️ **[docs/realtime_vis_plan.md](docs/realtime_vis_plan.md)** - Architecture and design
 
 ---
 
@@ -117,7 +118,7 @@ cd playground
 
 ---
 
-## 📁 **Current File Structure**
+## 📁 **File Structure**
 
 ### 🎮 **Main Application**
 - **`realtime_glove_viz.py`** - Main GUI application (run this!)
@@ -126,21 +127,31 @@ cd playground
 - **`glove_parser.py`** - Packet parsing and frame assembly
 - **`sensor_mapping.py`** - Sensor-to-index mapping (136 sensors)
 
-### 📚 **Documentation**
-- **`STATUS.md`** - ⭐ **Current status, issues, and progress**
-- **`DOCUMENTATION_INDEX.md`** - Complete documentation index
+### 📚 **Documentation (`docs/`)**
+- **`STATUS.md`** - ⭐ **Current status, resolved issues, and progress**
+- **`KNOWN_LIMITATIONS.md`** - ⭐ **Performance limitations from user testing**
 - **`QUICK_START.md`** - Quick reference guide
-- **`realtime_vis_plan.md`** - Architecture and design
-- **`COMPATIBILITY_UPDATE.md`** - Sensor mapping migration
-- **`README_REALTIME.md`** - Original MVP documentation
+- **`DOCUMENTATION_INDEX.md`** - Complete documentation navigation
+- **`START_HERE.md`** - Quick orientation guide
+- **`PROJECT_SUMMARY.md`** - High-level project overview
+- **`realtime_vis_plan.md`** - Architecture and design decisions
+- **`ISSUE_1_FIX_SUMMARY.md`** - Visualization color fix details
+- **`ISSUE_3_FIX_SUMMARY.md`** - Sequential processing fix details
+- **`WHATS_NEW_v1.1.md`** - Release notes for v1.1
 
 ### 🧪 **Testing**
 - **`test_compatibility.py`** - Comprehensive system test
 - **`test_app_minimal.py`** - Minimal GUI test
+- **`test_color_generation.py`** - Color mapping verification
+- **`test_sequential_processing.py`** - Sequential processing test
+- **`test_fix_integration.py`** - Integration test for fixes
 
 ### 📦 **Archive**
 - **`archive/`** - Legacy scripts (capture, offline analysis)
   - See `archive/README_ARCHIVE.md` for details
+- **`archive/deprecated_docs/`** - Older documentation versions
+  - `README_REALTIME.md` - Original MVP documentation
+  - `COMPATIBILITY_UPDATE.md`  - Sensor mapping migration details
 
 ---
 
@@ -172,8 +183,35 @@ cd playground
 
 ## 🎯 **Current Status**
 
-**Version:** MVP v1.2 (Issues #1 & #3 Fixed)  
+**Version:** MVP v1.2 (Issues #1 & #3 Fixed, User Testing Completed)  
 **Last Updated:** October 25, 2025
+
+### ⚠️ **IMPORTANT: Known Performance Limitations**
+
+**From User Testing:**
+- ⚠️ **Visualization lag: ~3+ seconds** (not suitable for real-time feedback)
+- ⚠️ **Actual display FPS: ~5 Hz** (configured 10 Hz, but processing bottleneck)
+- ⚠️ **Window resize flickering** (minor annoyance)
+
+**See [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) for:**
+- Detailed root cause analysis
+- Optimization roadmap
+- Quick fixes to try
+- Suitable vs unsuitable use cases
+
+**System is Production Ready for:**
+- ✅ Data logging and recording
+- ✅ Offline analysis
+- ✅ Sensor validation
+- ✅ Development/testing
+
+**NOT suitable for (without optimization):**
+- ❌ Real-time control systems
+- ❌ Time-critical applications
+- ❌ Gesture recognition
+- ❌ Interactive real-time feedback
+
+---
 
 ### ✅ **Working**
 - ✅ Serial communication (921600 bps, ~200 Hz capture)

@@ -98,7 +98,6 @@ def get_sensor_count():
 def extract_sensor_values(frame_data):
     """
     Extract sensor values from a 272-byte frame
-    OPTIMIZED: Uses numpy operations instead of Python loops
     
     Args:
         frame_data: List or bytes of length 272 (combined packet 0x01 + 0x02)
@@ -109,27 +108,20 @@ def extract_sensor_values(frame_data):
     if len(frame_data) < 272:
         raise ValueError(f"Frame data must be 272 bytes, got {len(frame_data)}")
     
-    # Convert to numpy array if needed
-    if not isinstance(frame_data, np.ndarray):
-        frame_data = np.array(frame_data, dtype=np.uint8)
-    
     sensor_values = {}
     
     for region_name, region_info in SENSOR_REGIONS.items():
         indices = region_info['data_indices']
-        # OPTIMIZED: Use numpy fancy indexing instead of list comprehension
-        indices_arr = np.array(indices, dtype=np.int32)
-        values = frame_data[indices_arr]
+        values = [frame_data[idx] for idx in indices if idx < len(frame_data)]
         
-        # OPTIMIZED: Use numpy operations for statistics
         sensor_values[region_name] = {
             'name': region_info['name'],
             'indices': indices,
             'values': values,
             'color': region_info['color'],
-            'max': int(values.max()),
-            'mean': float(values.mean()),
-            'active_count': int(np.count_nonzero(values))
+            'max': int(max(values)) if values else 0,
+            'mean': float(np.mean(values)) if values else 0.0,
+            'active_count': sum(1 for v in values if v > 0)
         }
     
     return sensor_values

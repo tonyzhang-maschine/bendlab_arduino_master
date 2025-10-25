@@ -1,7 +1,7 @@
 # JQ Glove Real-time Visualization - Current Status
 
-**Last Updated:** October 25, 2025  
-**Version:** MVP v1.2 (Issues #1 & #3 Fixed)  
+**Last Updated:** October 25, 2025 (Post User Testing)  
+**Version:** MVP v1.2 (Issues #1 & #3 Fixed, Known Limitations Documented)  
 **Device:** JQ20-XL-11 Left Hand Glove (136 sensors)
 
 ---
@@ -27,6 +27,39 @@
 - ✅ **Start/Stop Controls:** Functional buttons for capture control
 - ✅ **Log Panel:** Displays connection events with timestamps
 - ✅ **Graceful Shutdown:** Properly closes serial connection on stop
+
+---
+
+## 🔴 **Known Limitations (From User Testing)**
+
+### Performance Limitations Discovered:
+
+1. **Significant Visualization Lag (~3+ Seconds)** ⚠️
+   - Measured delay between glove interaction and display update
+   - Root cause: Queue buffering (660ms) + processing overhead + PyQtGraph rendering
+   - Impact: Not suitable for real-time feedback applications
+   - **See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for details**
+
+2. **Low Display FPS (~5 Hz vs Expected 10 Hz)** ⚠️
+   - Configured: 10 Hz timer
+   - Actual achieved: ~5 Hz
+   - Root cause: Update processing (150-200ms) exceeds timer interval (100ms)
+   - Bottleneck: PyQtGraph scatter plot rendering (~50-100ms per update)
+   - **See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for details**
+
+3. **Window Resizing/Flickering** ⚠️
+   - PyQt window constantly changes size to accommodate FPS text
+   - Caused by variable-length status text
+   - Easy fix: Set fixed width for status label
+   - **See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for details**
+
+**Status:** These are **documented limitations**, not bugs. System is production-ready for data logging and offline analysis, but NOT for time-critical real-time applications.
+
+**Recommendation:** See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) for:
+- Detailed root cause analysis
+- Optimization roadmap
+- Quick fixes to try
+- Suitable vs unsuitable use cases
 
 ---
 
@@ -376,6 +409,8 @@ print(f"Update took {(time.time()-start)*1000:.1f}ms")
 | Sequential Processing | ✅ **Fixed!** | No frame skipping (Issue #3 RESOLVED) |
 | Performance Monitoring | ✅ **New!** | Queue depth, timing, adaptive processing |
 | Sensor Mapping | 🟡 Partial | Cross-talk observed (Issue #2) |
+| **Real-time Performance** | ⚠️ **Limitations** | **~3s lag, ~5 Hz actual FPS (see KNOWN_LIMITATIONS.md)** |
+| **Window Stability** | ⚠️ **Minor** | **Resize flickering (easy fix available)** |
 
-**Overall Status:** ✅ **Production Ready** - All critical issues resolved! Only Issue #2 (minor sensor cross-talk) remains.
+**Overall Status:** ✅ **Production Ready (with Limitations)** - Suitable for logging/analysis. NOT suitable for time-critical real-time applications without optimization. See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
 
