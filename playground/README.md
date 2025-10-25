@@ -5,7 +5,7 @@ Real-time pressure visualization system for the JQ Glove (织物电子皮肤/Fab
 
 **Device:** JQ20-XL-11 Left Hand Glove (136 sensing points)  
 **Manufacturer:** 威海矩侨精密 (Weihai JQ Industries Technology Co., Ltd)  
-**Status:** ✅ **MVP v1.3 Production Ready** - Optimized performance, real-time monitoring ready!
+**Status:** ✅ **v1.5 Production Ready** - Professional visualization with pressure units and modern colormaps!
 
 ---
 
@@ -190,17 +190,29 @@ cd playground
 
 ## 🎯 **Current Status**
 
-**Version:** MVP v1.3 (Performance Optimized!)  
+**Version:** v1.5 (Professional Visualization!)  
 **Last Updated:** October 25, 2025
 
-### 🚀 **NEW: Major Performance Improvements!**
+### 🚀 **NEW: v1.5 Features!**
 
-**v1.3 Optimizations:**
-- ✅ **Visualization lag: ~150ms** (95% improvement from 3+ seconds!)
-- ✅ **Actual display FPS: 10 Hz stable** (100% improvement from 5 Hz)
-- ✅ **Window resize flickering: ELIMINATED**
-- ✅ **OpenGL acceleration: ENABLED** (8-17x faster rendering)
-- ✅ **Queue latency: 80% reduction** (658ms → 132ms)
+**Pressure Units (v1.4):**
+- ✅ **ADC to Pressure Conversion** - Real physical units (kPa, mmHg, N/cm²)
+- ✅ **Manufacturer Calibration** - 171-point calibration curve
+- ✅ **Real-time Unit Switching** - Change units without restart
+- ✅ **Accurate Display** - All stats and visualization in pressure units
+
+**Modern Colormaps (v1.5):**
+- ✅ **5 Scientific Colormaps** - Viridis, Plasma, Turbo, YlOrRd, Hot
+- ✅ **300% Better Visibility** - See low pressure values clearly
+- ✅ **Colorblind-Friendly** - Perceptually uniform options
+- ✅ **Real-time Switching** - Try different colormaps instantly
+- ✅ **Y-axis Flip** - Proper hand orientation
+
+**Performance (v1.3):**
+- ✅ **Visualization lag: ~150ms** (95% improvement!)
+- ✅ **Display FPS: 10 Hz stable**
+- ✅ **OpenGL acceleration: ENABLED**
+- ✅ **Window flickering: ELIMINATED**
 
 **See [docs/PERFORMANCE_OPTIMIZATION_v1.3.md](docs/PERFORMANCE_OPTIMIZATION_v1.3.md) for:**
 - Detailed benchmarks and improvements

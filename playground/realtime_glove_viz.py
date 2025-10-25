@@ -16,7 +16,7 @@ import time
 from queue import Queue, Full
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QLabel, QGroupBox, 
-                             QGridLayout, QTextEdit)
+                             QGridLayout, QTextEdit, QComboBox)
 from PyQt5.QtCore import QTimer, Qt
 import numpy as np
 import pyqtgraph as pg
@@ -28,6 +28,7 @@ pg.setConfigOption('enableExperimental', True)
 from hand_visualizer import HandVisualizer
 from serial_reader import SerialReaderThread
 from glove_parser import GloveParser
+from pressure_calibration import get_calibration
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +46,10 @@ class MainWindow(QMainWindow):
         self.frame_queue = Queue(maxsize=self.FRAME_QUEUE_SIZE)
         self.parser = GloveParser()
         self.serial_thread = None
+        
+        # Pressure calibration
+        self.calibration = get_calibration()
+        self.pressure_unit = 'kPa'  # Default unit
         
         # Statistics
         self.frame_count = 0
@@ -137,6 +142,32 @@ class MainWindow(QMainWindow):
         self.rate_label = QLabel(f"Update Rate: {self.UPDATE_RATE_HZ} Hz")
         layout.addWidget(self.rate_label)
         
+        # Pressure unit selector
+        unit_layout = QHBoxLayout()
+        unit_label = QLabel("Pressure Unit:")
+        unit_layout.addWidget(unit_label)
+        
+        self.unit_selector = QComboBox()
+        self.unit_selector.addItems(['kPa', 'mmHg', 'N/cm2'])
+        self.unit_selector.setCurrentText(self.pressure_unit)
+        self.unit_selector.currentTextChanged.connect(self.on_unit_changed)
+        unit_layout.addWidget(self.unit_selector)
+        
+        layout.addLayout(unit_layout)
+        
+        # Colormap selector
+        colormap_layout = QHBoxLayout()
+        colormap_label = QLabel("Colormap:")
+        colormap_layout.addWidget(colormap_label)
+        
+        self.colormap_selector = QComboBox()
+        self.colormap_selector.addItems(['viridis', 'plasma', 'turbo', 'YlOrRd', 'hot'])
+        self.colormap_selector.setCurrentText('viridis')  # Default
+        self.colormap_selector.currentTextChanged.connect(self.on_colormap_changed)
+        colormap_layout.addWidget(self.colormap_selector)
+        
+        layout.addLayout(colormap_layout)
+        
         group.setLayout(layout)
         return group
     
@@ -161,7 +192,7 @@ class MainWindow(QMainWindow):
             label = QLabel(name)
             layout.addWidget(label, i, 0)
             
-            value_label = QLabel("max=0  mean=0.0")
+            value_label = QLabel("max=0.00  mean=0.00 kPa")
             value_label.setStyleSheet("font-family: monospace;")
             layout.addWidget(value_label, i, 1)
             
@@ -332,7 +363,7 @@ class MainWindow(QMainWindow):
             self.frame_label.setText(status_text)
     
     def update_statistics(self, sensor_info: dict):
-        """Update statistics panel with region data."""
+        """Update statistics panel with region data (converted to pressure)."""
         # Map UI region keys to sensor_mapping region keys
         region_mapping = {
             'thumb': 'thumb',
@@ -343,12 +374,42 @@ class MainWindow(QMainWindow):
             'palm': 'palm'
         }
         
+        # Get unit symbol for display
+        unit_info = self.calibration.get_unit_info(self.pressure_unit)
+        unit_symbol = unit_info.get('symbol', self.pressure_unit)
+        
         for ui_key, sensor_key in region_mapping.items():
             if ui_key in self.region_labels and sensor_key in sensor_info:
                 region_data = sensor_info[sensor_key]
-                max_val = region_data.get('max', 0)
-                mean_val = region_data.get('mean', 0)
-                self.region_labels[ui_key].setText(f"max={max_val:3d}  mean={mean_val:5.1f}")
+                max_adc = region_data.get('max', 0)
+                mean_adc = region_data.get('mean', 0)
+                
+                # Convert ADC to pressure
+                max_pressure = self.calibration.adc_to_pressure(np.array([max_adc]), self.pressure_unit)[0]
+                mean_pressure = self.calibration.adc_to_pressure(np.array([mean_adc]), self.pressure_unit)[0]
+                
+                # Format based on unit
+                if self.pressure_unit == 'N/cm2':
+                    self.region_labels[ui_key].setText(f"max={max_pressure:5.3f}  mean={mean_pressure:5.3f} {unit_symbol}")
+                elif self.pressure_unit == 'mmHg':
+                    self.region_labels[ui_key].setText(f"max={max_pressure:6.1f}  mean={mean_pressure:6.1f} {unit_symbol}")
+                else:  # kPa
+                    self.region_labels[ui_key].setText(f"max={max_pressure:5.2f}  mean={mean_pressure:5.2f} {unit_symbol}")
+    
+    def on_unit_changed(self, new_unit: str):
+        """Handle pressure unit change."""
+        self.pressure_unit = new_unit
+        self.log_message(f"Pressure unit changed to: {new_unit}")
+        
+        # Update visualizer unit
+        self.hand_viz.set_pressure_unit(new_unit)
+    
+    def on_colormap_changed(self, new_colormap: str):
+        """Handle colormap change."""
+        self.log_message(f"Colormap changed to: {new_colormap}")
+        
+        # Update visualizer colormap
+        self.hand_viz.set_colormap(new_colormap)
     
     def log_message(self, message: str):
         """Add message to log panel."""

@@ -7,7 +7,7 @@ Uses the documented sensor-to-index mapping from sensor_mapping.py
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 from sensor_mapping import (
     SENSOR_REGIONS, 
@@ -15,6 +15,7 @@ from sensor_mapping import (
     SENSOR_DATA_ASSIGNED,
     get_sensor_by_id,
 )
+from pressure_calibration import get_calibration
 
 
 class HandVisualizer(QWidget):
@@ -30,9 +31,14 @@ class HandVisualizer(QWidget):
         # Create sensor positions from CSV data (real sensor layout!)
         self.sensor_positions = self._create_sensor_positions_from_csv()
         
-        # Color mapping (hot colormap: black -> red -> yellow)
+        # Pressure calibration
+        self.calibration = get_calibration()
+        self.pressure_unit = 'kPa'  # Default unit
+        
+        # Color mapping range (will be dynamically adjusted)
         self.vmin = 0
-        self.vmax = 255
+        self.vmax = 10  # Start with reasonable pressure range
+        self.colormap = 'viridis'  # Default colormap (much more visible than 'hot')
         
         # Setup UI
         self.setup_ui()
@@ -149,11 +155,8 @@ class HandVisualizer(QWidget):
         positions = np.array(positions)
         
         # The CSV coordinates are in mm, no need to scale
-        # But we should flip Y axis for proper display (higher Y = top)
-        # The CSV has Y increasing downward, we want Y increasing upward for visualization
-        if len(positions) > 0:
-            max_y = positions[:, 1].max()
-            positions[:, 1] = max_y - positions[:, 1]
+        # Y-axis flipping is handled by plot range (setYRange reversed)
+        # Keep positions as-is from CSV
         
         return positions
     
@@ -191,7 +194,10 @@ class HandVisualizer(QWidget):
         self.plot_widget.setAspectLocked(True)
         self.plot_widget.setLabel('bottom', 'X Position (mm)')
         self.plot_widget.setLabel('left', 'Y Position (mm)')
-        self.plot_widget.setTitle('JQ Glove Real-time Pressure Map', color='k', size='14pt')
+        
+        # Title with pressure unit
+        unit_symbol = self.calibration.get_unit_info(self.pressure_unit).get('symbol', self.pressure_unit)
+        self.plot_widget.setTitle(f'JQ Glove Real-time Pressure Map ({unit_symbol})', color='k', size='14pt')
         
         # Set up axis ranges based on actual sensor positions
         if len(self.sensor_positions) > 0:
@@ -201,11 +207,12 @@ class HandVisualizer(QWidget):
             # Add 10mm margin on each side
             margin = 10
             self.plot_widget.setXRange(x_min - margin, x_max + margin)
-            self.plot_widget.setYRange(y_min - margin, y_max + margin)
+            # Flip Y-axis by setting range in reverse order (higher values at bottom)
+            self.plot_widget.setYRange(y_max + margin, y_min - margin)
         else:
-            # Fallback ranges
+            # Fallback ranges (also flipped)
             self.plot_widget.setXRange(-5, 105)
-            self.plot_widget.setYRange(-5, 105)
+            self.plot_widget.setYRange(105, -5)
         
         # Add hand outline (optional - sensor positions show hand shape)
         # self.add_hand_outline()  # Disabled: Real sensor layout shows hand shape
@@ -228,8 +235,11 @@ class HandVisualizer(QWidget):
             brush=colors
         )
         
-        # Add colorbar
-        self.add_colorbar()
+        # Add colorbar legend
+        self.colorbar_label = QLabel()
+        self.colorbar_label.setStyleSheet("font-size: 10pt; padding: 5px;")
+        self.update_colorbar_label()
+        layout.addWidget(self.colorbar_label)
         
         layout.addWidget(self.plot_widget)
         self.setLayout(layout)
@@ -262,21 +272,29 @@ class HandVisualizer(QWidget):
         )
         self.plot_widget.addItem(self.outline_item)
     
-    def add_colorbar(self):
-        """Add colorbar legend to show pressure scale."""
-        self.gradient = pg.GradientWidget(orientation='right')
-        self.gradient.setMaximumWidth(20)
+    def update_colorbar_label(self):
+        """Update colorbar label with current pressure range, unit, and colormap."""
+        unit_info = self.calibration.get_unit_info(self.pressure_unit)
+        unit_symbol = unit_info.get('symbol', self.pressure_unit)
+        fmt = unit_info.get('format', '{:.2f}')
         
-        # Set hot colormap gradient
-        self.gradient.restoreState({
-            'mode': 'rgb',
-            'ticks': [
-                (0.0, (0, 0, 0, 255)),      # Black
-                (0.33, (128, 0, 0, 255)),   # Dark red
-                (0.66, (255, 128, 0, 255)), # Orange
-                (1.0, (255, 255, 0, 255))   # Yellow
-            ]
-        })
+        min_str = fmt.format(self.vmin)
+        max_str = fmt.format(self.vmax)
+        
+        # Colormap descriptions
+        colormap_descriptions = {
+            'viridis': 'Purple → Blue → Green → Yellow',
+            'plasma': 'Purple → Pink → Orange → Yellow',
+            'turbo': 'Blue → Cyan → Green → Yellow → Red',
+            'YlOrRd': 'Yellow → Orange → Red',
+            'hot': 'Black → Red → Orange → Yellow'
+        }
+        colormap_desc = colormap_descriptions.get(self.colormap, self.colormap)
+        
+        self.colorbar_label.setText(
+            f"Color Scale: {min_str} - {max_str} {unit_symbol} "
+            f"({colormap_desc})"
+        )
     
     def update_sensors(self, frame_data: np.ndarray):
         """
@@ -288,41 +306,52 @@ class HandVisualizer(QWidget):
         if len(frame_data) < 272:
             return
         
-        # Extract values for each sensor using documented indices
-        values = np.zeros(self.num_sensors, dtype=np.uint8)
+        # Extract ADC values for each sensor using documented indices
+        adc_values = np.zeros(self.num_sensors, dtype=np.uint8)
         for i, idx in enumerate(self.sensor_indices):
             if idx < len(frame_data):
-                values[i] = frame_data[idx]
+                adc_values[i] = frame_data[idx]
         
-        # DYNAMIC RANGE ADJUSTMENT: Scale colors based on actual data range
-        # This makes low sensor values (0-10) visible instead of nearly black
-        max_val = values.max()
-        if max_val > 0:
-            # Aggressive scaling for visibility:
-            # - For low values (< 20): scale to make them bright red/yellow
-            # - For higher values: use wider range
-            # Formula: Use 2-3x of max value, but clamp between 10 and 255
-            dynamic_vmax = max(min(max_val * 2.5, 255), 10)
+        # Convert ADC to pressure values
+        pressure_values = self.calibration.adc_to_pressure(adc_values, self.pressure_unit)
+        
+        # DYNAMIC RANGE ADJUSTMENT: Scale colors based on actual pressure range
+        max_pressure = pressure_values.max()
+        if max_pressure > 0:
+            # Use 2.5x of max pressure for good visibility, with reasonable bounds
+            pressure_range_min, pressure_range_max = self.calibration.get_pressure_range(self.pressure_unit)
+            
+            # Dynamic range: 2.5x current max, but at least 10% of full range
+            min_range = pressure_range_max * 0.1
+            dynamic_vmax = max(max_pressure * 2.5, min_range)
+            
+            # Don't exceed full calibration range
+            dynamic_vmax = min(dynamic_vmax, pressure_range_max)
+            
             self.set_colormap_range(0, dynamic_vmax)
         else:
-            # No active sensors, use default range
-            self.set_colormap_range(0, 255)
+            # No active sensors, use 10% of full range
+            _, max_range = self.calibration.get_pressure_range(self.pressure_unit)
+            self.set_colormap_range(0, max_range * 0.1)
         
-        # Convert values to colors
-        colors = self.value_to_color(values)
+        # Convert pressure values to colors
+        colors = self.value_to_color(pressure_values)
         
         # Update scatter plot
         self.sensor_scatter.setData(
             pos=self.sensor_positions,
             brush=colors
         )
+        
+        # Update colorbar label with new range
+        self.update_colorbar_label()
     
     def value_to_color(self, values: np.ndarray) -> np.ndarray:
         """
-        Convert sensor values to RGBA colors (hot colormap).
+        Convert pressure values to RGBA colors using selected colormap.
         
         Args:
-            values: Sensor values (0-255)
+            values: Pressure values (in current unit, e.g., kPa)
             
         Returns:
             Array of shape (N, 4) with RGBA values
@@ -334,27 +363,164 @@ class HandVisualizer(QWidget):
         # Create RGBA array
         colors = np.zeros((len(values), 4), dtype=np.uint8)
         
-        # Hot colormap implementation
+        # Apply selected colormap
+        if self.colormap == 'viridis':
+            colors = self._colormap_viridis(normalized)
+        elif self.colormap == 'plasma':
+            colors = self._colormap_plasma(normalized)
+        elif self.colormap == 'turbo':
+            colors = self._colormap_turbo(normalized)
+        elif self.colormap == 'YlOrRd':
+            colors = self._colormap_ylorrd(normalized)
+        elif self.colormap == 'hot':
+            colors = self._colormap_hot(normalized)
+        else:
+            # Fallback to viridis
+            colors = self._colormap_viridis(normalized)
+        
+        return colors
+    
+    def _colormap_viridis(self, normalized: np.ndarray) -> np.ndarray:
+        """Viridis colormap: Purple → Blue → Green → Yellow (perceptually uniform)"""
+        colors = np.zeros((len(normalized), 4), dtype=np.uint8)
+        for i, val in enumerate(normalized):
+            if val < 0.25:
+                t = val / 0.25
+                # Dark purple to purple
+                colors[i] = [int(68 + (59 - 68) * t), int(1 + (82 - 1) * t), int(84 + (139 - 84) * t), 255]
+            elif val < 0.5:
+                t = (val - 0.25) / 0.25
+                # Purple to teal
+                colors[i] = [int(59 + (33 - 59) * t), int(82 + (144 - 82) * t), int(139 + (140 - 139) * t), 255]
+            elif val < 0.75:
+                t = (val - 0.5) / 0.25
+                # Teal to green
+                colors[i] = [int(33 + (94 - 33) * t), int(144 + (201 - 144) * t), int(140 + (98 - 140) * t), 255]
+            else:
+                t = (val - 0.75) / 0.25
+                # Green to yellow
+                colors[i] = [int(94 + (253 - 94) * t), int(201 + (231 - 201) * t), int(98 + (37 - 98) * t), 255]
+        return colors
+    
+    def _colormap_plasma(self, normalized: np.ndarray) -> np.ndarray:
+        """Plasma colormap: Purple → Pink → Orange → Yellow (high contrast)"""
+        colors = np.zeros((len(normalized), 4), dtype=np.uint8)
+        for i, val in enumerate(normalized):
+            if val < 0.25:
+                t = val / 0.25
+                # Dark purple to purple
+                colors[i] = [int(13 + (126 - 13) * t), int(8 + (3 - 8) * t), int(135 + (168 - 135) * t), 255]
+            elif val < 0.5:
+                t = (val - 0.25) / 0.25
+                # Purple to magenta
+                colors[i] = [int(126 + (204 - 126) * t), int(3 + (71 - 3) * t), int(168 + (120 - 168) * t), 255]
+            elif val < 0.75:
+                t = (val - 0.5) / 0.25
+                # Magenta to orange
+                colors[i] = [int(204 + (240 - 204) * t), int(71 + (142 - 71) * t), int(120 + (53 - 120) * t), 255]
+            else:
+                t = (val - 0.75) / 0.25
+                # Orange to yellow
+                colors[i] = [int(240 + (240 - 240) * t), int(142 + (249 - 142) * t), int(53 + (33 - 53) * t), 255]
+        return colors
+    
+    def _colormap_turbo(self, normalized: np.ndarray) -> np.ndarray:
+        """Turbo colormap: Blue → Cyan → Green → Yellow → Red (improved jet)"""
+        colors = np.zeros((len(normalized), 4), dtype=np.uint8)
+        for i, val in enumerate(normalized):
+            if val < 0.2:
+                t = val / 0.2
+                # Blue to cyan
+                colors[i] = [int(48 + (34 - 48) * t), int(18 + (167 - 18) * t), int(59 + (227 - 59) * t), 255]
+            elif val < 0.4:
+                t = (val - 0.2) / 0.2
+                # Cyan to green
+                colors[i] = [int(34 + (31 - 34) * t), int(167 + (228 - 167) * t), int(227 + (139 - 227) * t), 255]
+            elif val < 0.6:
+                t = (val - 0.4) / 0.2
+                # Green to yellow
+                colors[i] = [int(31 + (189 - 31) * t), int(228 + (230 - 228) * t), int(139 + (43 - 139) * t), 255]
+            elif val < 0.8:
+                t = (val - 0.6) / 0.2
+                # Yellow to orange
+                colors[i] = [int(189 + (249 - 189) * t), int(230 + (152 - 230) * t), int(43 + (40 - 43) * t), 255]
+            else:
+                t = (val - 0.8) / 0.2
+                # Orange to red
+                colors[i] = [int(249 + (122 - 249) * t), int(152 + (4 - 152) * t), int(40 + (3 - 40) * t), 255]
+        return colors
+    
+    def _colormap_ylorrd(self, normalized: np.ndarray) -> np.ndarray:
+        """Yellow-Orange-Red colormap: Bright yellow → Orange → Red (high visibility)"""
+        colors = np.zeros((len(normalized), 4), dtype=np.uint8)
+        for i, val in enumerate(normalized):
+            if val < 0.5:
+                t = val / 0.5
+                # Bright yellow to orange
+                colors[i] = [int(255), int(255 - (255 - 178) * t), int(178 - (178 - 0) * t), 255]
+            else:
+                t = (val - 0.5) / 0.5
+                # Orange to dark red
+                colors[i] = [int(255 - (255 - 128) * t), int(178 - (178 - 0) * t), int(0), 255]
+        return colors
+    
+    def _colormap_hot(self, normalized: np.ndarray) -> np.ndarray:
+        """Hot colormap: Black → Red → Orange → Yellow (original)"""
+        colors = np.zeros((len(normalized), 4), dtype=np.uint8)
         for i, val in enumerate(normalized):
             if val < 0.33:
-                # Black to dark red
                 t = val / 0.33
+                # Black to dark red
                 colors[i] = [int(128 * t), 0, 0, 255]
             elif val < 0.66:
-                # Dark red to orange
                 t = (val - 0.33) / 0.33
+                # Dark red to orange
                 colors[i] = [128 + int(127 * t), int(128 * t), 0, 255]
             else:
-                # Orange to yellow
                 t = (val - 0.66) / 0.34
+                # Orange to yellow
                 colors[i] = [255, 128 + int(127 * t), 0, 255]
-        
         return colors
     
     def set_colormap_range(self, vmin: float, vmax: float):
         """Set the min/max range for color mapping."""
         self.vmin = vmin
-        self.vmax = vmax
+        self.vmax = max(vmax, vmin + 0.01)  # Prevent division by zero
+    
+    def set_pressure_unit(self, unit: str):
+        """
+        Change the pressure unit for display.
+        
+        Args:
+            unit: Pressure unit ('kPa', 'mmHg', or 'N/cm2')
+        """
+        self.pressure_unit = unit
+        
+        # Update plot title
+        unit_symbol = self.calibration.get_unit_info(unit).get('symbol', unit)
+        self.plot_widget.setTitle(f'JQ Glove Real-time Pressure Map ({unit_symbol})', color='k', size='14pt')
+        
+        # Reset color range to 10% of new unit's full range
+        _, max_range = self.calibration.get_pressure_range(unit)
+        self.set_colormap_range(0, max_range * 0.1)
+        
+        # Update colorbar
+        self.update_colorbar_label()
+    
+    def set_colormap(self, colormap: str):
+        """
+        Change the colormap for visualization.
+        
+        Args:
+            colormap: Colormap name ('viridis', 'plasma', 'turbo', 'YlOrRd', 'hot')
+        """
+        valid_colormaps = ['viridis', 'plasma', 'turbo', 'YlOrRd', 'hot']
+        if colormap in valid_colormaps:
+            self.colormap = colormap
+            self.update_colorbar_label()
+        else:
+            print(f"Warning: Unknown colormap '{colormap}', using 'viridis'")
+            self.colormap = 'viridis'
     
     def clear(self):
         """Reset all sensors to zero (black)."""
