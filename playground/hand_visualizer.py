@@ -224,6 +224,20 @@ class HandVisualizer(QWidget):
             if idx < len(frame_data):
                 values[i] = frame_data[idx]
         
+        # DYNAMIC RANGE ADJUSTMENT: Scale colors based on actual data range
+        # This makes low sensor values (0-10) visible instead of nearly black
+        max_val = values.max()
+        if max_val > 0:
+            # Aggressive scaling for visibility:
+            # - For low values (< 20): scale to make them bright red/yellow
+            # - For higher values: use wider range
+            # Formula: Use 2-3x of max value, but clamp between 10 and 255
+            dynamic_vmax = max(min(max_val * 2.5, 255), 10)
+            self.set_colormap_range(0, dynamic_vmax)
+        else:
+            # No active sensors, use default range
+            self.set_colormap_range(0, 255)
+        
         # Convert values to colors
         colors = self.value_to_color(values)
         

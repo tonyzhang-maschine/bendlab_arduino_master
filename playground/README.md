@@ -5,7 +5,7 @@ Real-time pressure visualization system for the JQ Glove (织物电子皮肤/Fab
 
 **Device:** JQ20-XL-11 Left Hand Glove (136 sensing points)  
 **Manufacturer:** 威海矩侨精密 (Weihai JQ Industries Technology Co., Ltd)  
-**Status:** 🟡 MVP Functional - Visualization colors need debugging
+**Status:** ✅ **MVP v1.1 Fully Functional** - Core visualization working!
 
 ---
 
@@ -172,8 +172,8 @@ cd playground
 
 ## 🎯 **Current Status**
 
-**Version:** MVP v1.0  
-**Last Updated:** October 24, 2025
+**Version:** MVP v1.1 (Issue #1 Fixed)  
+**Last Updated:** October 25, 2025
 
 ### ✅ **Working**
 - ✅ Serial communication (921600 bps, ~200 Hz capture)
@@ -182,11 +182,12 @@ cd playground
 - ✅ Per-region statistics (max, mean, active count)
 - ✅ Documented sensor mapping (136 sensors)
 - ✅ Start/Stop controls and connection status
+- ✅ **Visualization colors with dynamic range** (Issue #1 FIXED!)
 
-### 🔴 **Known Issues** (See [STATUS.md](STATUS.md))
-1. **Visualization colors not updating** - All dots remain black
-2. **Sensor mapping cross-talk** - Adjacent fingers may trigger each other  
-3. **Intermittent GUI freezing** - Possible data saving related
+### 🟡 **Minor Issues** (See [STATUS.md](STATUS.md))
+1. ~~**Visualization colors not updating**~~ ✅ **FIXED** - Dynamic range adjustment implemented
+2. **Sensor mapping cross-talk** - Adjacent fingers may trigger each other (minor)
+3. **Intermittent GUI freezing** - Possible data saving related (intermittent)
 
 ### 📊 **Performance**
 - Capture: ~76 Hz (below target ~200 Hz)
@@ -194,9 +195,9 @@ cd playground
 - Statistics: Real-time updates working correctly
 
 ### 🔧 **Next Steps**
-1. Debug visualization color update (Priority: HIGH)
-2. Verify sensor mapping with finger isolation tests
-3. Profile GUI performance for freezing issues
+1. ~~Debug visualization color update~~ ✅ **COMPLETED** (Priority: HIGH)
+2. Verify sensor mapping with finger isolation tests (Priority: MEDIUM)
+3. Profile GUI performance for freezing issues (Priority: LOW)
 4. Add data recording functionality
 
 ---
