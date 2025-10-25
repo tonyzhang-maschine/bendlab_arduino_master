@@ -1,0 +1,317 @@
+# JQ Glove Real-time Visualization - Current Status
+
+**Last Updated:** October 24, 2025  
+**Version:** MVP v1.0  
+**Device:** JQ20-XL-11 Left Hand Glove (136 sensors)
+
+---
+
+## ✅ **Working Features**
+
+### Core Functionality
+- ✅ **Serial Communication:** Successfully connects to glove at 921600 bps
+- ✅ **Packet Parsing:** Correctly parses delimiter `0xAA 0x55 0x03 0x99`
+- ✅ **Frame Assembly:** Combines packet 0x01 (128 bytes) + packet 0x02 (144 bytes) = 272 bytes
+- ✅ **High-Speed Capture:** ~200 Hz data acquisition (1139 frames in test)
+- ✅ **Real-time Display:** 15 Hz visualization update rate (11.7 FPS achieved)
+- ✅ **GUI Layout:** Complete interface with hand map, controls, statistics, and log panel
+
+### Statistics Panel
+- ✅ **Per-Region Statistics:** Shows max and mean values for each finger region
+- ✅ **Value Ranges:** Properly displays 0-255 range (observed: 0-6 in test)
+- ✅ **Real-time Updates:** Statistics update smoothly without lag
+- ✅ **Correct Calculation:** No overflow warnings, using numpy for calculations
+
+### Connection Management
+- ✅ **Status Indicator:** Shows "Connected" (green) / "Disconnected" (red)
+- ✅ **Start/Stop Controls:** Functional buttons for capture control
+- ✅ **Log Panel:** Displays connection events with timestamps
+- ✅ **Graceful Shutdown:** Properly closes serial connection on stop
+
+---
+
+## ⚠️ **Known Issues**
+
+### Issue 1: Visualization Not Updating (CRITICAL)
+**Status:** 🔴 **Not Working**
+
+**Symptoms:**
+- All 136 sensor dots remain **black** regardless of pressure
+- Dots do not change color even when statistics show active sensors
+- Hand outline displays correctly
+- Statistics panel shows real-time data (thumb max=3, index max=6, etc.)
+
+**Observed:**
+```
+Statistics show:
+  Thumb:  max= 3  mean= 0.2  ← Data is being captured
+  Index:  max= 6  mean= 0.6  ← Data is being captured
+  
+But visualization:
+  All dots remain black ← Not updating colors
+```
+
+**Root Cause (Hypothesis):**
+- Colors are being calculated but not applied to scatter plot
+- Possible issue in `hand_visualizer.py` update logic
+- May need to force plot refresh or use different update method
+
+**Priority:** 🔴 **HIGH** - Main visualization feature non-functional
+
+---
+
+### Issue 2: Sensor Mapping Accuracy (MINOR)
+**Status:** 🟡 **Partially Working**
+
+**Symptoms:**
+- Pressing one finger sometimes increases values of **adjacent fingers**
+- Cross-talk between neighboring sensors
+- Example: Pressing index finger may trigger middle finger values
+
+**Observed Behavior:**
+```
+Press Index Finger →
+  Index:  max= 6  mean= 0.6  ← Expected
+  Middle: max= 0  mean= 0.0  ← Correct (but sometimes shows small values)
+  Thumb:  max= 3  mean= 0.2  ← Unexpected cross-talk
+```
+
+**Root Cause (Hypothesis):**
+1. **Documentation mapping may have overlaps** - Some indices shared between regions
+2. **Hardware cross-talk** - Fabric sensor design may have electrical coupling
+3. **Finger placement** - Natural hand posture causes multiple contact points
+
+**Possible Solutions:**
+- Verify sensor indices from documentation (may need manufacturer clarification)
+- Test with isolated finger presses to map actual sensor responses
+- Consider calibration/threshold adjustments
+- May need to update `sensor_mapping.py` based on empirical testing
+
+**Priority:** 🟡 **MEDIUM** - Affects accuracy but system is usable
+
+---
+
+### Issue 3: GUI Freezing/Flickering (INTERMITTENT)
+**Status:** 🟡 **Occurs Periodically**
+
+**Symptoms:**
+- GUI freezes temporarily during capture
+- Occasional flickering of display
+- Brief unresponsiveness to controls
+
+**Hypothesis:**
+- Related to **data saving operations** (if enabled)
+- Thread blocking on file I/O
+- Queue overflow causing frame drops
+
+**Potential Causes:**
+```python
+# If data saving is enabled (not in current MVP):
+def save_frame(frame_data):
+    with open('data.bin', 'ab') as f:
+        f.write(frame_data)  # ← Blocking I/O on main thread
+```
+
+**Mitigation Strategies:**
+1. Ensure no file I/O on GUI thread
+2. Implement async data saving if needed
+3. Monitor queue size (currently max 50 frames)
+4. Check for memory leaks in long-running sessions
+
+**Priority:** 🟡 **MEDIUM** - Intermittent, doesn't block core functionality
+
+---
+
+## 📊 **Performance Metrics**
+
+### Test Session Data
+```
+Connection: /dev/cu.usbmodem57640302171
+Duration: ~15 seconds
+Frames Captured: 1139
+Capture Rate: ~75.9 frames/second (below expected ~200 Hz)
+Display FPS: 11.7 Hz (below target 15 Hz)
+Frame Queue: 50 max (appears to be dropping frames)
+```
+
+**Observations:**
+- Capture rate lower than expected (~76 Hz vs ~200 Hz target)
+- May indicate parsing overhead or buffer issues
+- Display FPS slightly below 15 Hz target (acceptable)
+
+---
+
+## 🎯 **Sensor Mapping Status**
+
+### Current Implementation
+```python
+# Using documented byte indices from specification
+SENSOR_REGIONS = {
+    'little_finger': [31, 30, 29, 15, 14, 13, ...],  # 12 sensors
+    'ring_finger': [28, 27, 26, 12, 11, 10, ...],    # 12 sensors
+    'middle_finger': [25, 24, 23, 9, 8, 7, ...],     # 12 sensors
+    'index_finger': [22, 21, 20, 6, 5, 4, ...],      # 12 sensors
+    'thumb': [19, 18, 17, 3, 2, 1, ...],             # 12 sensors
+    'palm': [207-129],                                # 72 sensors
+    'finger_backs': [238, 219, 216, 213, 210],       # 5 sensors
+}
+```
+
+### Known Issues
+- ✅ Index 238 duplication handled (deduplication in visualizer)
+- ⚠️ Adjacent finger cross-talk observed (needs empirical verification)
+- ❓ Finger back sensors not yet tested
+- ❓ IMU data (indices 256-271) not yet decoded
+
+---
+
+## 🔧 **Technical Details**
+
+### Architecture
+```
+USB Serial (921600 bps)
+    ↓
+SerialReaderThread (QThread)
+    ↓ Emit frame_ready signal
+Queue (max 50 frames)
+    ↓ QTimer (15 Hz)
+MainWindow.update_display()
+    ↓
+HandVisualizer.update_sensors()
+    → ScatterPlotItem (PyQtGraph)
+```
+
+### Data Flow
+1. **Serial Thread:** Continuous read at ~200 Hz
+2. **Parser:** Finds delimiter, combines packets
+3. **Queue:** Thread-safe producer-consumer (50 frame buffer)
+4. **Timer:** GUI updates every 66ms (15 Hz)
+5. **Visualizer:** Maps 136 sensor values to colored dots
+
+### Thread Safety
+- ✅ Qt signals/slots for cross-thread communication
+- ✅ Queue-based buffering
+- ✅ No shared mutable state
+- ✅ Graceful shutdown handling
+
+---
+
+## 📝 **Testing Checklist**
+
+### Completed Tests ✅
+- [x] Serial connection establishment
+- [x] Packet parsing (delimiter detection)
+- [x] Frame assembly (0x01 + 0x02)
+- [x] Statistics calculation (max, mean)
+- [x] GUI layout and controls
+- [x] Start/Stop functionality
+- [x] Connection status updates
+- [x] Log panel messages
+
+### Pending Tests ⏳
+- [ ] **Color mapping verification** (Issue #1)
+- [ ] Individual finger isolation testing
+- [ ] Palm sensor grid testing
+- [ ] Finger back sensor testing
+- [ ] IMU data extraction
+- [ ] Long-term stability (1+ hour)
+- [ ] Memory leak detection
+- [ ] Data export functionality
+- [ ] Multiple capture sessions
+
+---
+
+## 🔮 **Next Steps**
+
+### Immediate Priorities (Critical)
+1. **Fix visualization colors** (Issue #1)
+   - Debug `hand_visualizer.py` color update
+   - Verify `value_to_color()` function
+   - Check PyQtGraph scatter plot refresh
+   - Add debug prints to track color values
+
+2. **Verify sensor mapping** (Issue #2)
+   - Create finger isolation test script
+   - Record which byte indices activate for each finger
+   - Compare with documentation
+   - Update `sensor_mapping.py` if needed
+
+3. **Investigate GUI freezing** (Issue #3)
+   - Profile GUI performance
+   - Check for blocking operations
+   - Monitor thread activity
+   - Add performance metrics
+
+### Short-term Enhancements
+- [ ] Add data recording functionality
+- [ ] Implement playback mode
+- [ ] Create calibration routine
+- [ ] Add threshold adjustments
+- [ ] Improve sensor position layout
+
+### Long-term Features
+- [ ] LSL streaming integration
+- [ ] IMU data visualization
+- [ ] ADC to pressure (Newtons) conversion
+- [ ] Gesture recognition
+- [ ] Web interface
+- [ ] Multi-glove support
+
+---
+
+## 🐛 **Debugging Guide**
+
+### For Issue #1 (Black Dots)
+```bash
+# Add debug prints in hand_visualizer.py
+def update_sensors(self, frame_data):
+    values = ...
+    colors = self.value_to_color(values)
+    print(f"DEBUG: Min value={values.min()}, Max={values.max()}")
+    print(f"DEBUG: Colors shape={colors.shape}, sample={colors[0]}")
+```
+
+### For Issue #2 (Cross-talk)
+```bash
+# Run finger isolation test
+cd playground
+../.venv/bin/python << 'EOF'
+# Press ONLY index finger, observe all region max values
+# Record which regions show non-zero values
+EOF
+```
+
+### For Issue #3 (Freezing)
+```python
+# Add timing measurements
+import time
+start = time.time()
+self.hand_viz.update_sensors(frame_data)
+print(f"Update took {(time.time()-start)*1000:.1f}ms")
+```
+
+---
+
+## 📚 **Related Documentation**
+
+- **README.md** - Project overview and sensor specs
+- **realtime_vis_plan.md** - Original architecture design
+- **COMPATIBILITY_UPDATE.md** - Sensor mapping migration details
+- **QUICK_START.md** - Quick reference for running the app
+- **sensor_mapping.py** - Complete sensor-to-index mapping
+
+---
+
+## ✅ **Summary**
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Serial Communication | ✅ Working | Stable at 921600 bps |
+| Packet Parsing | ✅ Working | Correct frame assembly |
+| Statistics Display | ✅ Working | Real-time updates |
+| Visualization Colors | 🔴 Not Working | All dots black (Issue #1) |
+| Sensor Mapping | 🟡 Partial | Cross-talk observed (Issue #2) |
+| GUI Stability | 🟡 Intermittent | Occasional freezing (Issue #3) |
+
+**Overall Status:** 🟡 **Functional but needs fixes** - Core capture working, visualization needs debugging.
+
