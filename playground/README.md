@@ -125,25 +125,26 @@ cd playground
 - **`hand_visualizer.py`** - PyQtGraph visualization widget  
 - **`serial_reader.py`** - Multi-threaded serial reader
 - **`glove_parser.py`** - Packet parsing and frame assembly
-- **`sensor_mapping.py`** - Sensor-to-index mapping (136 sensors)
+- **`sensor_mapping.py`** - Sensor-to-index mapping
 
-### 🏷️ **Annotation Tool** (NEW!)
-- **`annotate_sensors.py`** - Interactive sensor region annotation tool
+### 🏷️ **Sensor Mapping Tools**
+- **`annotate_sensors.py`** - Interactive region annotation tool
+- **`assign_dataframe_indices.py`** - Data frame index assignment tool
 - **`glove_sensor_map_refined.csv`** - Sensor coordinates (165 sensors)
-- **`ANNOTATION_GUIDE.md`** - Complete annotation workflow guide
-- **`run_annotation_tool.sh`** - Quick launch script
+- **`glove_sensor_map_annotated.csv`** - Sensors with regions (11 regions)
+- **`glove_sensor_map_with_indices.csv`** - Complete mapping (sensor_id → data_frame_index)
+- **`run_annotation_tool.sh`** - Quick launcher for annotation tool
 
-### 📚 **Documentation (`docs/`)**
-- **`STATUS.md`** - ⭐ **Current status, resolved issues, and progress**
-- **`KNOWN_LIMITATIONS.md`** - ⭐ **Performance limitations from user testing**
-- **`QUICK_START.md`** - Quick reference guide
-- **`DOCUMENTATION_INDEX.md`** - Complete documentation navigation
-- **`START_HERE.md`** - Quick orientation guide
-- **`PROJECT_SUMMARY.md`** - High-level project overview
-- **`realtime_vis_plan.md`** - Architecture and design decisions
-- **`ISSUE_1_FIX_SUMMARY.md`** - Visualization color fix details
-- **`ISSUE_3_FIX_SUMMARY.md`** - Sequential processing fix details
-- **`WHATS_NEW_v1.1.md`** - Release notes for v1.1
+### 📚 **Documentation**
+- **`docs/`** - Main documentation directory
+  - **`STATUS.md`** - ⭐ Current status and progress
+  - **`QUICK_START.md`** - Quick reference guide
+  - **`KNOWN_LIMITATIONS.md`** - Performance notes
+  - **`DOCUMENTATION_INDEX.md`** - Complete navigation
+  - **`annotation/`** - Sensor mapping documentation
+    - Annotation guides and workflows
+    - Data frame index assignment docs
+- **`archive/`** - Legacy scripts and old documentation
 
 ### 🧪 **Testing**
 - **`test_compatibility.py`** - Comprehensive system test

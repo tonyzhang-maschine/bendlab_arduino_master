@@ -1,255 +1,195 @@
-# JQ Glove Playground - Documentation Index
+# Documentation Index
 
-**Quick Navigation:** Documentation organized by purpose and priority.
+Complete guide to JQ Glove Real-time Visualization System documentation.
+
+**Last Updated:** October 25, 2025  
+**Version:** MVP v1.3 + Sensor Mapping Tools
 
 ---
 
-## 🚀 **Start Here**
+## 🚀 **Quick Start**
 
-### For First-Time Users
-1. **[README.md](README.md)** - Project overview, hardware specs, protocol details
+**New to the project? Start here:**
+
+1. **[START_HERE.md](START_HERE.md)** - Quick orientation guide
 2. **[QUICK_START.md](QUICK_START.md)** - How to run the application
-3. **[STATUS.md](STATUS.md)** - **⭐ Current status, known issues, and progress**
-
-### For Developers
-1. **[realtime_vis_plan.md](realtime_vis_plan.md)** - Architecture and design decisions
-2. **[COMPATIBILITY_UPDATE.md](COMPATIBILITY_UPDATE.md)** - Recent sensor mapping updates
-3. **[sensor_mapping.py](sensor_mapping.py)** - Complete sensor index reference
+3. **[STATUS.md](STATUS.md)** - Current status and what's working
 
 ---
 
-## 📊 **Current Status Documents**
+## 📚 **Core Documentation**
 
-| Document | Purpose | Last Updated |
-|----------|---------|--------------|
-| **[STATUS.md](STATUS.md)** | Current progress, known issues, next steps | Oct 24, 2025 |
-| **[QUICK_START.md](QUICK_START.md)** | Quick reference for running the app | Oct 24, 2025 |
+### Project Overview
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - High-level project overview
+- **[STATUS.md](STATUS.md)** - ⭐ Current status, resolved issues, and progress
+- **[KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md)** - Performance notes and considerations
 
-**Status Summary:**
-- ✅ Serial communication working
-- ✅ Statistics display working  
-- 🔴 Visualization colors not updating (Issue #1)
-- 🟡 Minor sensor mapping cross-talk (Issue #2)
-- 🟡 Intermittent GUI freezing (Issue #3)
+### Usage Guides
+- **[QUICK_START.md](QUICK_START.md)** - Quick reference for running the app
+- **[README.md](README.md)** - Main documentation (in docs/)
 
----
+### Architecture & Design
+- **[realtime_vis_plan.md](realtime_vis_plan.md)** - Architecture and design decisions
+- **[PERFORMANCE_OPTIMIZATION_v1.3.md](PERFORMANCE_OPTIMIZATION_v1.3.md)** - Performance improvements
 
-## 📚 **Technical Documentation**
-
-### Core Documentation
-- **[README.md](README.md)** - Main project documentation
-  - Device specifications (JQ20-XL-11, 136 sensors)
-  - Protocol details (delimiter, packet structure)
-  - Sensor mapping overview
-  - File descriptions
-
-- **[realtime_vis_plan.md](realtime_vis_plan.md)** - Real-time visualization design
-  - System architecture diagram
-  - Library selection (PyQtGraph)
-  - Threading model
-  - Data flow
-  - MVP implementation checklist
-
-### Implementation Details
-- **[COMPATIBILITY_UPDATE.md](COMPATIBILITY_UPDATE.md)** - Migration guide
-  - Sensor mapping changes (162→136 sensors)
-  - Code updates for documented indices
-  - Breaking changes
-  - Test results
-
-- **[README_REALTIME.md](README_REALTIME.md)** - Original MVP guide
-  - Installation instructions
-  - Usage guide
-  - Troubleshooting
-  - Phase 2/3 roadmap
+### Release Notes
+- **[WHATS_NEW_v1.3.md](WHATS_NEW_v1.3.md)** - Latest release notes (v1.3)
+- **[CHANGELOG.md](CHANGELOG.md)** - Complete change history
 
 ---
 
-## 💻 **Code Reference**
+## 🏷️ **Sensor Mapping Documentation** (`annotation/`)
 
-### Main Application Files
+Complete sensor mapping and data frame index assignment workflow:
 
-| File | Purpose | Lines | Status |
-|------|---------|-------|--------|
-| **realtime_glove_viz.py** | Main GUI application | ~330 | ✅ Working |
-| **hand_visualizer.py** | PyQtGraph visualization widget | ~280 | 🔴 Colors not updating |
-| **serial_reader.py** | Serial reading thread | ~110 | ✅ Working |
-| **glove_parser.py** | Packet parsing & frame assembly | ~160 | ✅ Working |
-| **sensor_mapping.py** | Sensor-to-index mapping | ~190 | 🟡 Needs verification |
+### Annotation Workflow
+- **[ANNOTATION_QUICKSTART.md](annotation/ANNOTATION_QUICKSTART.md)** - 5-minute quick start guide
+- **[ANNOTATION_GUIDE.md](annotation/ANNOTATION_GUIDE.md)** - Detailed annotation workflow
+- **[ANNOTATION_TOOL_SUMMARY.md](annotation/ANNOTATION_TOOL_SUMMARY.md)** - Technical overview
 
-### Utility Scripts
+### Data Frame Index Assignment
+- **[DATAFRAME_INDEX_ASSIGNMENT.md](annotation/DATAFRAME_INDEX_ASSIGNMENT.md)** - Complete mapping guide
+  - Maps sensor_id → data_frame_index (byte positions)
+  - Explains finger tips, bodies, and palm mapping strategy
+  - Usage examples and integration guide
 
-| File | Purpose | Usage |
-|------|---------|-------|
-| **test_compatibility.py** | Comprehensive system test | `python test_compatibility.py` |
-| **test_app_minimal.py** | Minimal GUI test | `python test_app_minimal.py` |
-
-### Legacy/Analysis Scripts (Reference Only)
-
-| File | Purpose | Note |
-|------|---------|------|
-| **jq_glove_capture.py** | Original capture script | ⚠️ Superseded by realtime_glove_viz.py |
-| **analyze_glove_data.py** | Static data analysis | ⚠️ For offline .bin files |
-| **visualize_raw_data.py** | Raw data heatmap | ⚠️ For debugging only |
-| **quick_data_check.py** | Packet inspection | ⚠️ For debugging only |
+### Files Generated
+- `glove_sensor_map_refined.csv` - Sensor coordinates (165 sensors)
+- `glove_sensor_map_annotated.csv` - Sensors with regions (11 regions)
+- `glove_sensor_map_with_indices.csv` - Complete mapping (162/165 sensors)
 
 ---
 
-## 🔧 **Testing & Debugging**
+## 📦 **Archive** (`../archive/`)
 
-### Test Scripts
-1. **test_compatibility.py** - Full system compatibility test
-   ```bash
-   python test_compatibility.py
-   ```
-   Tests: imports, parsing, sensor mapping, statistics
+### Legacy Scripts
+- **[README_ARCHIVE.md](../archive/README_ARCHIVE.md)** - Overview of archived scripts
+- `analyze_glove_data.py` - Offline data analysis
+- `jq_glove_capture.py` - Simple capture script
+- `visualize_raw_data.py` - Raw data visualization
 
-2. **test_app_minimal.py** - Minimal GUI test
-   ```bash
-   python test_app_minimal.py
-   ```
-   Tests: HandVisualizer, update_sensors, no IndexError
-
-### Running the Application
-```bash
-# From playground directory
-../.venv/bin/python realtime_glove_viz.py
-
-# Expected output:
-# - GUI window opens
-# - Click "Start" to connect
-# - Statistics update in real-time
-```
-
-### Debugging Known Issues
-See **[STATUS.md](STATUS.md)** → "Debugging Guide" section for:
-- Issue #1: Black dots (visualization not updating)
-- Issue #2: Sensor cross-talk
-- Issue #3: GUI freezing
+### Deprecated Documentation (`deprecated_docs/`)
+- **ISSUE_1_FIX_SUMMARY.md** - Visualization color fix (resolved)
+- **ISSUE_3_FIX_SUMMARY.md** - Sequential processing fix (resolved)
+- **WHATS_NEW_v1.1.md** - Old release notes (v1.1)
+- **PERFORMANCE_IMPROVEMENTS_SUMMARY.md** - Superseded by v1.3 docs
 
 ---
 
-## 📖 **Protocol & Hardware Reference**
+## 🗺️ **Documentation Navigation**
 
-### Packet Structure
-```
-[Delimiter: AA 55 03 99] [Packet Index] [Sensor Type] [Payload]
-```
+### By Topic
 
-**Frame Composition:**
-- Packet 0x01: 6 header + 128 payload = 134 bytes
-- Packet 0x02: 6 header + 144 payload = 150 bytes
-- **Total frame:** 272 bytes (128 + 144 payload)
+**Getting Started:**
+- START_HERE.md → QUICK_START.md → STATUS.md
 
-### Sensor Mapping
-See **[sensor_mapping.py](sensor_mapping.py)** for complete mapping:
-- 136 unique sensors (12 per finger, 5 backs, 72 palm)
-- Documented byte indices (not sequential!)
-- Example: Thumb uses indices [19, 18, 17, 3, 2, 1, 243, ...]
+**Understanding the System:**
+- PROJECT_SUMMARY.md → realtime_vis_plan.md → PERFORMANCE_OPTIMIZATION_v1.3.md
 
-### Data Regions
-```
-Indices 1-255:   Pressure sensor data (136 sensors)
-Indices 256-271: IMU data (accelerometer/gyroscope)
-```
+**Sensor Mapping:**
+- annotation/ANNOTATION_QUICKSTART.md → annotation/ANNOTATION_GUIDE.md → annotation/DATAFRAME_INDEX_ASSIGNMENT.md
 
----
+**Troubleshooting:**
+- KNOWN_LIMITATIONS.md → STATUS.md
 
-## 🗂️ **File Organization**
+**Development:**
+- realtime_vis_plan.md → CHANGELOG.md
 
-```
-playground/
-├── 📱 Main Application
-│   ├── realtime_glove_viz.py      # Main GUI app
-│   ├── hand_visualizer.py         # Visualization widget
-│   ├── serial_reader.py           # Serial thread
-│   ├── glove_parser.py            # Packet parser
-│   └── sensor_mapping.py          # Sensor indices
-│
-├── 📚 Documentation
-│   ├── STATUS.md                  # ⭐ Current status
-│   ├── DOCUMENTATION_INDEX.md     # This file
-│   ├── README.md                  # Project overview
-│   ├── QUICK_START.md             # Quick reference
-│   ├── realtime_vis_plan.md       # Architecture
-│   ├── COMPATIBILITY_UPDATE.md    # Migration guide
-│   └── README_REALTIME.md         # Original MVP docs
-│
-├── 🧪 Testing
-│   ├── test_compatibility.py      # System tests
-│   └── test_app_minimal.py        # Minimal tests
-│
-└── 🔧 Legacy/Utilities (Reference)
-    ├── jq_glove_capture.py        # Original capture
-    ├── analyze_glove_data.py      # Offline analysis
-    ├── visualize_raw_data.py      # Raw heatmaps
-    └── quick_data_check.py        # Packet inspection
-```
+### By Role
+
+**End User (Running the App):**
+1. START_HERE.md
+2. QUICK_START.md
+3. KNOWN_LIMITATIONS.md
+
+**Developer (Understanding Code):**
+1. PROJECT_SUMMARY.md
+2. realtime_vis_plan.md
+3. STATUS.md
+4. CHANGELOG.md
+
+**Researcher (Sensor Mapping):**
+1. annotation/ANNOTATION_QUICKSTART.md
+2. annotation/DATAFRAME_INDEX_ASSIGNMENT.md
+3. annotation/ANNOTATION_GUIDE.md
 
 ---
 
-## 🎯 **Quick Links by Task**
+## 📊 **Key Information at a Glance**
 
-### I want to...
-- **Run the app** → [QUICK_START.md](QUICK_START.md)
-- **Understand current issues** → [STATUS.md](STATUS.md)
-- **Learn the architecture** → [realtime_vis_plan.md](realtime_vis_plan.md)
-- **Fix visualization colors** → [STATUS.md#issue-1](STATUS.md)
-- **Verify sensor mapping** → [sensor_mapping.py](sensor_mapping.py)
-- **Debug packet parsing** → [glove_parser.py](glove_parser.py)
-- **Test the system** → [test_compatibility.py](test_compatibility.py)
+### System Capabilities
+- **Capture Rate:** ~200 Hz (76 Hz stable)
+- **Display Rate:** 10 Hz (stable)
+- **Latency:** ~145ms (95% improvement from v1.0)
+- **Sensors:** 165 physical, 162 mapped to data frame
+- **Frame Size:** 272 bytes (2 packets)
+- **Performance:** Production-ready for real-time monitoring
 
-### I need...
-- **Hardware specs** → [README.md](README.md) → "Hardware Connection"
-- **Protocol details** → [README.md](README.md) → "Protocol & Data Format"
-- **Sensor indices** → [sensor_mapping.py](sensor_mapping.py)
-- **Performance metrics** → [STATUS.md](STATUS.md) → "Performance Metrics"
-- **Known issues** → [STATUS.md](STATUS.md) → "Known Issues"
+### Sensor Configuration
+- **Total Sensors:** 165
+- **Regions:** 11 (5 fingers × 2 parts + palm)
+  - Thumb: tip (12) + body (6)
+  - Index: tip (12) + body (6)
+  - Middle: tip (12) + body (6)
+  - Ring: tip (12) + body (6)
+  - Little: tip (12) + body (6)
+  - Palm: 75 sensors (72 mapped)
+- **Data Frame Indices:** 0-271 (sensor data at specific byte positions)
 
----
-
-## 📋 **Documentation Maintenance**
-
-### Update Frequency
-- **STATUS.md** - Update after each major test or bug fix
-- **QUICK_START.md** - Update when commands/setup changes
-- **COMPATIBILITY_UPDATE.md** - Update when API changes
-- **README.md** - Update when specs or features change
-
-### Contribution Guidelines
-When making changes, update:
-1. Relevant code file
-2. STATUS.md (if it affects known issues)
-3. This index (if adding new files)
-4. Version/date stamps
+### File Locations
+- **Main App:** `../realtime_glove_viz.py`
+- **Annotation Tool:** `../annotate_sensors.py`
+- **Index Assignment:** `../assign_dataframe_indices.py`
+- **Sensor Data:** `../glove_sensor_map_with_indices.csv`
 
 ---
 
-## 📞 **Support & Resources**
+## 🔗 **External References**
 
 ### Hardware Documentation
-- **PDF:** `【矩侨精密】织物电子皮肤产品规格书250630-V1.1.pdf`
-- **Product:** JQ20-XL-11 (Left Hand, 136 sensing points)
-- **Manufacturer:** Weihai JQ Industries Technology Co., Ltd
+- **Device Specs:** `【矩侨精密】织物电子皮肤产品规格书250630-V1.1.pdf`
+- **Product:** JQ20-XL-11 (Left Hand, 162 sensing points)
+- **Manufacturer:** 威海矩侨精密 (Weihai JQ Industries)
 
-### Dependencies
-```bash
-# Core dependencies
-pip install pyserial numpy PyQt5 pyqtgraph
-
-# Full requirements
-pip install -r requirements.txt
-```
-
-### Getting Help
-1. Check [STATUS.md](STATUS.md) for known issues
-2. Review [QUICK_START.md](QUICK_START.md) troubleshooting
-3. Run [test_compatibility.py](test_compatibility.py)
-4. Check logs in GUI log panel
+### Data Formats
+- **Sensor Data:** ADC values (0-255)
+- **Pressure Range:** 0~350N (requires calibration)
+- **Frame Rate:** ~200 Hz raw, 10 Hz display
+- **Protocol:** Binary, 921600 baud, CH340 USB
 
 ---
 
-**Last Updated:** October 24, 2025  
-**Current Version:** MVP v1.0  
-**Status:** 🟡 Functional with known issues
+## 📝 **Document Maintenance**
+
+### When to Update
+- **STATUS.md** - After resolving issues or implementing features
+- **CHANGELOG.md** - After every significant change
+- **DOCUMENTATION_INDEX.md** - When adding/moving documentation
+- **WHATS_NEW_vX.X.md** - For major version releases
+
+### Documentation Standards
+- Use clear headings and sections
+- Include examples and code snippets
+- Cross-reference related documents
+- Keep technical details in separate docs
+- Update modification dates
+
+---
+
+## ✅ **Documentation Checklist**
+
+- [x] Quick start guide
+- [x] Architecture documentation
+- [x] Status and progress tracking
+- [x] Performance optimization docs
+- [x] Annotation workflow guides
+- [x] Data frame index assignment
+- [x] Troubleshooting guide
+- [x] Change log
+- [x] Archive organization
+- [x] This index document
+
+---
+
+**Need help? Start with [START_HERE.md](START_HERE.md) or [STATUS.md](STATUS.md)**
 
