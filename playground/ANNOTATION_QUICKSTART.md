@@ -37,29 +37,26 @@ cd playground
 2. Select `glove_sensor_map_refined.csv`
 3. You'll see 165 gray dots (all unassigned)
 
-### Step 2: Annotate Fingers First
+### Step 2: Annotate Fingers (Tips and Bodies)
 Start from **right to left** (assuming left-hand glove):
 
+Each finger now has **TWO buttons: Tip and Body**
+
+**Strategy:**
+- Higher Y values (~240-250mm) = **Tips** (brighter colors)
+- Lower Y values (~150-230mm) = **Bodies** (darker colors)
+
 **Thumb (right side, X ~80-135mm):**
-- Use **Lasso** mode
-- Draw around thumb sensors (high Y values on right side)
-- Click **Thumb** button → Sensors turn red
+- Use **Lasso** mode for tip section (high Y)
+- Click **Thumb Tip** button → Bright red
+- Lasso the lower section
+- Click **Thumb Body** button → Dark red
 
-**Index Finger:**
-- Lasso around next finger column
-- Click **Index** button → Green
-
-**Middle Finger:**
-- Usually center, highest Y values
-- Click **Middle** button → Blue
-
-**Ring Finger:**
-- Left of middle
-- Click **Ring** button → Yellow
-
-**Little Finger (left side, X ~21-45mm):**
-- Leftmost sensors
-- Click **Little** button → Purple
+**Repeat for other fingers:**
+- **Index:** Tip (bright green) + Body (dark green)
+- **Middle:** Tip (bright blue) + Body (dark blue)
+- **Ring:** Tip (bright yellow) + Body (dark yellow)
+- **Little (left side):** Tip (bright purple) + Body (dark purple)
 
 ### Step 3: Annotate Palm
 - Switch to **Rectangle** mode
@@ -125,14 +122,19 @@ Your annotation will roughly look like:
 
 ```
 Region          Sensors    Color
-─────────────────────────────────
-Thumb           15-25      🔴 Red
-Index           15-25      🟢 Green
-Middle          15-25      🔵 Blue
-Ring            15-25      🟡 Yellow
-Little          15-25      🟣 Purple
+─────────────────────────────────────
+Thumb Tip       8-12       🔴 Bright Red
+Thumb Body      8-12       🔴 Dark Red
+Index Tip       8-12       🟢 Bright Green
+Index Body      8-12       🟢 Dark Green
+Middle Tip      8-12       🔵 Bright Blue
+Middle Body     8-12       🔵 Dark Blue
+Ring Tip        8-12       🟡 Bright Yellow
+Ring Body       8-12       🟡 Dark Yellow
+Little Tip      8-12       🟣 Bright Purple
+Little Body     8-12       🟣 Dark Purple
 Palm            50-80      🔵 Cyan
-─────────────────────────────────
+─────────────────────────────────────
 TOTAL           165        
 ```
 

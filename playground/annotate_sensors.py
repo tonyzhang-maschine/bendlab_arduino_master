@@ -18,14 +18,32 @@ from PyQt5.QtGui import QColor
 import pyqtgraph as pg
 
 
-# Region definitions
+# Region definitions - Separated into tips and bodies
 REGIONS = {
-    'thumb': {'name': 'Thumb (大拇指)', 'color': (255, 100, 100, 200)},
-    'index': {'name': 'Index (食指)', 'color': (100, 255, 100, 200)},
-    'middle': {'name': 'Middle (中指)', 'color': (100, 100, 255, 200)},
-    'ring': {'name': 'Ring (无名指)', 'color': (255, 255, 100, 200)},
-    'little': {'name': 'Little (小拇指)', 'color': (255, 100, 255, 200)},
+    # Thumb
+    'thumb_tip': {'name': 'Thumb Tip (大拇指尖)', 'color': (255, 80, 80, 200)},
+    'thumb_body': {'name': 'Thumb Body (大拇指身)', 'color': (200, 100, 100, 200)},
+    
+    # Index finger
+    'index_tip': {'name': 'Index Tip (食指尖)', 'color': (80, 255, 80, 200)},
+    'index_body': {'name': 'Index Body (食指身)', 'color': (100, 200, 100, 200)},
+    
+    # Middle finger
+    'middle_tip': {'name': 'Middle Tip (中指尖)', 'color': (80, 80, 255, 200)},
+    'middle_body': {'name': 'Middle Body (中指身)', 'color': (100, 100, 200, 200)},
+    
+    # Ring finger
+    'ring_tip': {'name': 'Ring Tip (无名指尖)', 'color': (255, 255, 80, 200)},
+    'ring_body': {'name': 'Ring Body (无名指身)', 'color': (200, 200, 100, 200)},
+    
+    # Little finger
+    'little_tip': {'name': 'Little Tip (小拇指尖)', 'color': (255, 80, 255, 200)},
+    'little_body': {'name': 'Little Body (小拇指身)', 'color': (200, 100, 200, 200)},
+    
+    # Palm
     'palm': {'name': 'Palm (手掌)', 'color': (100, 255, 255, 200)},
+    
+    # Unassigned
     'unassigned': {'name': 'Unassigned', 'color': (150, 150, 150, 200)}
 }
 
@@ -177,31 +195,75 @@ class SensorAnnotationTool(QMainWindow):
         selection_group.setLayout(selection_layout)
         layout.addWidget(selection_group)
         
-        # Region assignment
+        # Region assignment - Organized by finger
         region_group = QGroupBox("Assign Selected to Region")
-        region_layout = QGridLayout()
+        region_layout = QVBoxLayout()
         
-        row = 0
-        for region_key, region_info in REGIONS.items():
-            if region_key == 'unassigned':
-                continue
+        # Helper function to create finger button pair
+        def create_finger_buttons(finger_name, tip_key, body_key):
+            finger_widget = QWidget()
+            finger_layout = QHBoxLayout(finger_widget)
+            finger_layout.setContentsMargins(0, 0, 0, 0)
             
-            btn = QPushButton(region_info['name'])
-            color = QColor(*region_info['color'])
-            btn.setStyleSheet(f"""
+            # Tip button
+            tip_btn = QPushButton(REGIONS[tip_key]['name'])
+            tip_color = QColor(*REGIONS[tip_key]['color'])
+            tip_btn.setStyleSheet(f"""
                 QPushButton {{
-                    background-color: rgba({color.red()}, {color.green()}, {color.blue()}, 180);
+                    background-color: rgba({tip_color.red()}, {tip_color.green()}, {tip_color.blue()}, 180);
                     border: 2px solid #333;
-                    padding: 8px;
-                    font-weight: bold;
+                    padding: 6px;
+                    font-size: 10pt;
                 }}
                 QPushButton:hover {{
                     border: 3px solid #000;
                 }}
             """)
-            btn.clicked.connect(lambda checked, r=region_key: self.assign_region(r))
-            region_layout.addWidget(btn, row // 2, row % 2)
-            row += 1
+            tip_btn.clicked.connect(lambda: self.assign_region(tip_key))
+            
+            # Body button
+            body_btn = QPushButton(REGIONS[body_key]['name'])
+            body_color = QColor(*REGIONS[body_key]['color'])
+            body_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: rgba({body_color.red()}, {body_color.green()}, {body_color.blue()}, 180);
+                    border: 2px solid #333;
+                    padding: 6px;
+                    font-size: 10pt;
+                }}
+                QPushButton:hover {{
+                    border: 3px solid #000;
+                }}
+            """)
+            body_btn.clicked.connect(lambda: self.assign_region(body_key))
+            
+            finger_layout.addWidget(tip_btn)
+            finger_layout.addWidget(body_btn)
+            return finger_widget
+        
+        # Add finger buttons (tip + body for each)
+        region_layout.addWidget(create_finger_buttons("Thumb", "thumb_tip", "thumb_body"))
+        region_layout.addWidget(create_finger_buttons("Index", "index_tip", "index_body"))
+        region_layout.addWidget(create_finger_buttons("Middle", "middle_tip", "middle_body"))
+        region_layout.addWidget(create_finger_buttons("Ring", "ring_tip", "ring_body"))
+        region_layout.addWidget(create_finger_buttons("Little", "little_tip", "little_body"))
+        
+        # Palm button (full width)
+        palm_btn = QPushButton(REGIONS['palm']['name'])
+        palm_color = QColor(*REGIONS['palm']['color'])
+        palm_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: rgba({palm_color.red()}, {palm_color.green()}, {palm_color.blue()}, 180);
+                border: 2px solid #333;
+                padding: 8px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                border: 3px solid #000;
+            }}
+        """)
+        palm_btn.clicked.connect(lambda: self.assign_region('palm'))
+        region_layout.addWidget(palm_btn)
         
         region_group.setLayout(region_layout)
         layout.addWidget(region_group)
