@@ -1,5 +1,5 @@
 serial:
-  baudrate: 115200
+  baudrate: 921600 #115200
   timeout: 1.0
   read_timeout: 0.1
   write_timeout: 0.5
