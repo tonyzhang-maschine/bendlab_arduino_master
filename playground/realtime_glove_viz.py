@@ -4,6 +4,11 @@ Real-time JQ Glove Visualization - Main Application
 
 Displays real-time pressure data from JQ Glove device using PyQtGraph.
 Captures data at ~200 Hz and visualizes at 10-20 Hz for smooth real-time display.
+
+Performance Optimizations:
+- OpenGL acceleration enabled for faster rendering
+- Reduced queue size for lower latency
+- Fixed-width status labels to prevent window flickering
 """
 
 import sys
@@ -14,6 +19,11 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QGridLayout, QTextEdit)
 from PyQt5.QtCore import QTimer, Qt
 import numpy as np
+import pyqtgraph as pg
+
+# Enable OpenGL acceleration for better performance
+pg.setConfigOption('useOpenGL', True)
+pg.setConfigOption('enableExperimental', True)
 
 from hand_visualizer import HandVisualizer
 from serial_reader import SerialReaderThread
@@ -25,7 +35,7 @@ class MainWindow(QMainWindow):
     SERIAL_PORT = '/dev/cu.usbmodem57640302171'
     BAUDRATE = 921600
     UPDATE_RATE_HZ = 10  # Reduced from 15Hz to handle processing load
-    FRAME_QUEUE_SIZE = 50
+    FRAME_QUEUE_SIZE = 10  # Reduced from 50 to minimize latency (660ms -> 130ms @ 76Hz)
     FRAMES_PER_UPDATE = 1  # Process N frames per timer tick (can increase if falling behind)
     
     def __init__(self):
@@ -101,8 +111,10 @@ class MainWindow(QMainWindow):
         self.port_label = QLabel(f"Port: {self.SERIAL_PORT}")
         layout.addWidget(self.port_label)
         
-        # Frame counter
+        # Frame counter (fixed width to prevent window resizing)
         self.frame_label = QLabel("Frames: 0 | FPS: 0.0")
+        self.frame_label.setMinimumWidth(700)  # Prevent resize on text change
+        self.frame_label.setStyleSheet("font-family: monospace;")  # Monospace for consistent width
         layout.addWidget(self.frame_label)
         
         # Buttons
