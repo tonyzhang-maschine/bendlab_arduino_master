@@ -3,7 +3,7 @@
 Complete guide to JQ Glove Real-time Visualization System documentation.
 
 **Last Updated:** October 25, 2025  
-**Version:** MVP v1.3 + Sensor Mapping Tools
+**Version:** MVP v1.3 + Sensor Mapping v2.0
 
 ---
 
@@ -35,6 +35,33 @@ Complete guide to JQ Glove Real-time Visualization System documentation.
 ### Release Notes
 - **[WHATS_NEW_v1.3.md](WHATS_NEW_v1.3.md)** - Latest release notes (v1.3)
 - **[CHANGELOG.md](CHANGELOG.md)** - Complete change history
+
+---
+
+## 🆕 **Sensor Mapping v2.0** (NEW!)
+
+**Major upgrade:** CSV-based sensor-level mapping with precise positioning!
+
+### Core Documentation
+- **[SENSOR_MAPPING_UPGRADE.md](SENSOR_MAPPING_UPGRADE.md)** - ⭐ Complete API reference and migration guide
+- **[SENSOR_MAPPING_QUICK_REF.md](../SENSOR_MAPPING_QUICK_REF.md)** - One-page quick reference (in playground/)
+- **[SENSOR_MAPPING_V2_SUMMARY.md](SENSOR_MAPPING_V2_SUMMARY.md)** - Upgrade summary and statistics
+
+### Technical Details
+- **[CSV_POSITIONS_UPGRADE.md](CSV_POSITIONS_UPGRADE.md)** - Real sensor positions from CSV
+- **[VISUALIZER_COMPATIBILITY_FIX.md](VISUALIZER_COMPATIBILITY_FIX.md)** - Compatibility fix details
+
+### New Features
+- ✅ Individual sensor tracking (sensor_id → data_frame_index)
+- ✅ Position data (x, y coordinates in mm)
+- ✅ Handles shared indices (finger bodies)
+- ✅ Handles unassigned sensors
+- ✅ 100% backward compatible
+
+### Testing & Examples
+- `test_sensor_mapping_upgrade.py` - Comprehensive test suite
+- `demo_sensor_mapping_comparison.py` - v1.0 vs v2.0 comparison
+- `test_visualizer_fix.py` - Compatibility validation
 
 ---
 

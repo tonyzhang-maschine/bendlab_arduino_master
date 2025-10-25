@@ -9,20 +9,26 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt
-from sensor_mapping import SENSOR_REGIONS, get_sensor_count
+from sensor_mapping import (
+    SENSOR_REGIONS, 
+    get_unique_data_indices, 
+    SENSOR_DATA_ASSIGNED,
+    get_sensor_by_id,
+)
 
 
 class HandVisualizer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         
-        # Get sensor count from documented mapping
-        self.num_sensors = get_sensor_count()  # Should be 136
-        self.scale = 100  # Coordinate scale
-        
-        # Create sensor positions based on documented regions
-        self.sensor_positions = self._create_sensor_positions()
+        # Get unique data indices for visualization
+        # Note: Multiple sensors can share same index (e.g., finger bodies)
+        # So we visualize unique data indices (137), not all sensors (162)
         self.sensor_indices = self._get_ordered_indices()
+        self.num_sensors = len(self.sensor_indices)  # 137 unique indices
+        
+        # Create sensor positions from CSV data (real sensor layout!)
+        self.sensor_positions = self._create_sensor_positions_from_csv()
         
         # Color mapping (hot colormap: black -> red -> yellow)
         self.vmin = 0
@@ -33,8 +39,9 @@ class HandVisualizer(QWidget):
         
     def _create_sensor_positions(self) -> np.ndarray:
         """
-        Create approximate visual positions for all 136 sensors based on regions.
-        Returns array of shape (136, 2) with (x, y) coordinates.
+        Create approximate visual positions for all unique data indices based on regions.
+        Returns array of shape (num_sensors, 2) with (x, y) coordinates.
+        Note: num_sensors = 137 (unique data frame indices)
         """
         positions = []
         
@@ -99,10 +106,62 @@ class HandVisualizer(QWidget):
         
         return np.array(positions) * self.scale
     
+    def _create_sensor_positions_from_csv(self) -> np.ndarray:
+        """
+        Create sensor positions using actual X, Y coordinates from CSV.
+        
+        For data indices that are shared by multiple sensors (finger bodies),
+        use the average position of all sensors sharing that index.
+        
+        Returns array of shape (num_sensors, 2) with (x, y) coordinates.
+        """
+        if SENSOR_DATA_ASSIGNED is None:
+            # Fallback to approximate positions if CSV not available
+            print("⚠️  CSV data not available, using approximate positions")
+            return self._create_sensor_positions()
+        
+        # Create mapping: data_frame_index → list of (x, y) positions
+        index_to_positions = {}
+        
+        for _, sensor in SENSOR_DATA_ASSIGNED.iterrows():
+            df_index = int(sensor['data_frame_index'])
+            x_mm = float(sensor['x_mm'])
+            y_mm = float(sensor['y_mm'])
+            
+            if df_index not in index_to_positions:
+                index_to_positions[df_index] = []
+            index_to_positions[df_index].append([x_mm, y_mm])
+        
+        # For each unique data index, compute average position
+        # (for shared indices like finger bodies, average all sensor positions)
+        positions = []
+        for df_index in self.sensor_indices:
+            if df_index in index_to_positions:
+                # Average position of all sensors sharing this index
+                pos_list = index_to_positions[df_index]
+                avg_pos = np.mean(pos_list, axis=0)
+                positions.append(avg_pos)
+            else:
+                # Shouldn't happen, but fallback to origin
+                print(f"⚠️  Warning: No position found for index {df_index}")
+                positions.append([0, 0])
+        
+        positions = np.array(positions)
+        
+        # The CSV coordinates are in mm, no need to scale
+        # But we should flip Y axis for proper display (higher Y = top)
+        # The CSV has Y increasing downward, we want Y increasing upward for visualization
+        if len(positions) > 0:
+            max_y = positions[:, 1].max()
+            positions[:, 1] = max_y - positions[:, 1]
+        
+        return positions
+    
     def _get_ordered_indices(self) -> list:
         """
-        Get ordered list of sensor byte indices matching position array.
-        Returns list of 136 unique indices.
+        Get ordered list of unique data frame indices matching position array.
+        Returns list of 137 unique indices (deduplicated from SENSOR_REGIONS).
+        Note: Some indices appear in multiple regions, we keep only unique ones.
         """
         indices = []
         seen = set()
@@ -130,20 +189,31 @@ class HandVisualizer(QWidget):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.setBackground('w')
         self.plot_widget.setAspectLocked(True)
-        self.plot_widget.setLabel('bottom', 'X Position')
-        self.plot_widget.setLabel('left', 'Y Position')
+        self.plot_widget.setLabel('bottom', 'X Position (mm)')
+        self.plot_widget.setLabel('left', 'Y Position (mm)')
         self.plot_widget.setTitle('JQ Glove Real-time Pressure Map', color='k', size='14pt')
         
-        # Set up axis ranges
-        self.plot_widget.setXRange(-5, 105)
-        self.plot_widget.setYRange(-5, 105)
+        # Set up axis ranges based on actual sensor positions
+        if len(self.sensor_positions) > 0:
+            x_min, x_max = self.sensor_positions[:, 0].min(), self.sensor_positions[:, 0].max()
+            y_min, y_max = self.sensor_positions[:, 1].min(), self.sensor_positions[:, 1].max()
+            
+            # Add 10mm margin on each side
+            margin = 10
+            self.plot_widget.setXRange(x_min - margin, x_max + margin)
+            self.plot_widget.setYRange(y_min - margin, y_max + margin)
+        else:
+            # Fallback ranges
+            self.plot_widget.setXRange(-5, 105)
+            self.plot_widget.setYRange(-5, 105)
         
-        # Add hand outline
-        self.add_hand_outline()
+        # Add hand outline (optional - sensor positions show hand shape)
+        # self.add_hand_outline()  # Disabled: Real sensor layout shows hand shape
         
         # Create scatter plot for sensors
+        # Using larger dots for better visibility with real sensor layout
         self.sensor_scatter = pg.ScatterPlotItem(
-            size=10,
+            size=12,
             pen=pg.mkPen(None),
             pxMode=True
         )
