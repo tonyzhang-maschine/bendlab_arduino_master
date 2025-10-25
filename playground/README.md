@@ -127,6 +127,12 @@ cd playground
 - **`glove_parser.py`** - Packet parsing and frame assembly
 - **`sensor_mapping.py`** - Sensor-to-index mapping (136 sensors)
 
+### 🏷️ **Annotation Tool** (NEW!)
+- **`annotate_sensors.py`** - Interactive sensor region annotation tool
+- **`glove_sensor_map_refined.csv`** - Sensor coordinates (165 sensors)
+- **`ANNOTATION_GUIDE.md`** - Complete annotation workflow guide
+- **`run_annotation_tool.sh`** - Quick launch script
+
 ### 📚 **Documentation (`docs/`)**
 - **`STATUS.md`** - ⭐ **Current status, resolved issues, and progress**
 - **`KNOWN_LIMITATIONS.md`** - ⭐ **Performance limitations from user testing**
