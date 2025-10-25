@@ -24,8 +24,9 @@ class MainWindow(QMainWindow):
     # Configuration
     SERIAL_PORT = '/dev/cu.usbmodem57640302171'
     BAUDRATE = 921600
-    UPDATE_RATE_HZ = 15
+    UPDATE_RATE_HZ = 10  # Reduced from 15Hz to handle processing load
     FRAME_QUEUE_SIZE = 50
+    FRAMES_PER_UPDATE = 1  # Process N frames per timer tick (can increase if falling behind)
     
     def __init__(self):
         super().__init__()
@@ -37,9 +38,13 @@ class MainWindow(QMainWindow):
         
         # Statistics
         self.frame_count = 0
+        self.frames_processed = 0  # Total frames actually processed
+        self.frames_displayed = 0  # Frames that updated visualization
         self.start_time = None
         self.last_update_time = time.time()
         self.dropped_frames = 0
+        self.max_queue_depth = 0  # Track maximum queue depth
+        self.update_times = []  # Track processing times for performance monitoring
         
         # Setup UI
         self.setup_ui()
@@ -195,7 +200,11 @@ class MainWindow(QMainWindow):
         
         # Reset statistics
         self.frame_count = 0
+        self.frames_processed = 0
+        self.frames_displayed = 0
         self.dropped_frames = 0
+        self.max_queue_depth = 0
+        self.update_times = []
         self.start_time = time.time()
     
     def stop_capture(self):
@@ -244,45 +253,71 @@ class MainWindow(QMainWindow):
         self.log_message(f"ERROR: {error_msg}")
     
     def update_display(self):
-        """Update display with latest frame (called by timer at UPDATE_RATE_HZ)."""
+        """Update display with frames in sequence (called by timer at UPDATE_RATE_HZ)."""
+        update_start_time = time.time()
+        
         if self.frame_queue.empty():
             return
         
-        # Get latest frame (discard intermediate frames for real-time display)
-        frame_data = None
-        frames_skipped = 0
+        # Monitor queue depth for performance tracking
+        queue_depth = self.frame_queue.qsize()
+        self.max_queue_depth = max(self.max_queue_depth, queue_depth)
         
-        while not self.frame_queue.empty():
-            try:
-                frame_data = self.frame_queue.get_nowait()
-                if frames_skipped > 0:
-                    frames_skipped += 1
-            except:
+        # Process FRAMES_PER_UPDATE frames per timer tick to maintain sequence
+        # If queue is growing, can increase this to catch up
+        frames_to_process = self.FRAMES_PER_UPDATE
+        
+        # Adaptive processing: if queue is getting full, process more frames
+        if queue_depth > self.FRAME_QUEUE_SIZE * 0.7:  # More than 70% full
+            frames_to_process = min(3, queue_depth)  # Process up to 3 frames
+        
+        frames_processed_this_tick = 0
+        for _ in range(frames_to_process):
+            if self.frame_queue.empty():
                 break
+            
+            try:
+                # Get next frame IN SEQUENCE (no skipping!)
+                frame_data = self.frame_queue.get_nowait()
+                self.frames_processed += 1
+                frames_processed_this_tick += 1
+                
+                # Extract sensor values using documented mapping
+                sensor_info = self.parser.get_sensor_data(frame_data)
+                if 'raw_frame' not in sensor_info:
+                    continue
+                
+                # Update visualization with raw frame data (only for last frame this tick)
+                if frames_processed_this_tick == frames_to_process or self.frame_queue.empty():
+                    self.hand_viz.update_sensors(frame_data)
+                    self.frames_displayed += 1
+                
+                # Update statistics with region data (always update for accurate stats)
+                self.update_statistics(sensor_info)
+                
+            except Exception as e:
+                print(f"Error processing frame: {e}")
+                continue
         
-        if frame_data is None:
-            return
+        # Track processing time
+        update_duration = (time.time() - update_start_time) * 1000  # ms
+        self.update_times.append(update_duration)
+        if len(self.update_times) > 100:  # Keep last 100 measurements
+            self.update_times.pop(0)
         
-        # Update frame counter
-        self.frame_count += 1
-        
-        # Extract sensor values using documented mapping
-        sensor_info = self.parser.get_sensor_data(frame_data)
-        if 'raw_frame' not in sensor_info:
-            return
-        
-        # Update visualization with raw frame data
-        self.hand_viz.update_sensors(frame_data)
-        
-        # Update statistics with region data
-        self.update_statistics(sensor_info)
-        
-        # Update FPS display
+        # Update FPS and performance display
         current_time = time.time()
         if self.start_time is not None:
             elapsed = current_time - self.start_time
-            fps = self.frame_count / elapsed if elapsed > 0 else 0
-            self.frame_label.setText(f"Frames: {self.frame_count} | FPS: {fps:.1f}")
+            capture_fps = self.frames_processed / elapsed if elapsed > 0 else 0
+            display_fps = self.frames_displayed / elapsed if elapsed > 0 else 0
+            avg_update_time = sum(self.update_times) / len(self.update_times) if self.update_times else 0
+            
+            status_text = (f"Captured: {self.frames_processed} ({capture_fps:.1f} Hz) | "
+                          f"Displayed: {self.frames_displayed} ({display_fps:.1f} Hz) | "
+                          f"Queue: {queue_depth}/{self.FRAME_QUEUE_SIZE} (max:{self.max_queue_depth}) | "
+                          f"Update: {avg_update_time:.1f}ms")
+            self.frame_label.setText(status_text)
     
     def update_statistics(self, sensor_info: dict):
         """Update statistics panel with region data."""
