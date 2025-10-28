@@ -307,10 +307,12 @@ class HandVisualizer(QWidget):
             return
         
         # Extract ADC values for each sensor using documented indices
+        # Note: idx uses 1-based indexing (1-272), convert to 0-based Python array index
         adc_values = np.zeros(self.num_sensors, dtype=np.uint8)
         for i, idx in enumerate(self.sensor_indices):
-            if idx < len(frame_data):
-                adc_values[i] = frame_data[idx]
+            array_index = idx - 1  # Convert 1-based to 0-based
+            if array_index >= 0 and array_index < len(frame_data):
+                adc_values[i] = frame_data[array_index]
         
         # Convert ADC to pressure values
         pressure_values = self.calibration.adc_to_pressure(adc_values, self.pressure_unit)

@@ -1,12 +1,19 @@
 # JQ Glove Real-time Visualization - Current Status
 
-**Last Updated:** October 25, 2025 (Colormap & Pressure Units)  
-**Version:** v1.5 (Production Ready - Professional Visualization)  
+**Last Updated:** October 28, 2025 (Critical Indexing Fix + Manual Index Mapping)
+**Version:** v1.6 (Production Ready - Accurate Sensor Mapping!)
 **Device:** JQ20-XL-11 Left Hand Glove (136 sensors)
 
 ---
 
 ## ✅ **Working Features**
+
+### 🎉 **NEW in v1.6: Accurate Sensor Mapping!**
+- ✅ **Off-by-One Fix:** Corrected critical indexing error (1-based docs → 0-based Python)
+- ✅ **Manual Index Assignment:** Interactive GUI tool for data_frame_index editing
+- ✅ **Verified Mapping:** All 161 sensors manually mapped and hardware-tested
+- ✅ **Accurate Patterns:** Sensor regions now correctly match physical finger positions
+- ✅ **New CSV:** `glove_sensor_map_annotated_w_dataframe_indices.csv` (active)
 
 ### Core Functionality
 - ✅ **Serial Communication:** Successfully connects to glove at 921600 bps
@@ -122,31 +129,34 @@ if max_val > 0:
 
 ---
 
-### Issue 2: Sensor Mapping Cross-talk (MINOR)
-**Status:** 🟡 **Known Limitation - Minor Impact**
+### Issue 2: Sensor Mapping Cross-talk
+**Status:** ✅ **RESOLVED** (v1.6)
 
-**Symptoms:**
-- Pressing one finger sometimes triggers response in **other fingers**
-- Most common: Index finger press → Thumb tip shows small values
-- Cross-talk between non-adjacent sensors observed
+**Original Problem:**
+- Pressing one finger showed response in **wrong regions**
+- Strange sensor patterns that didn't match physical layout
+- Suspected "cross-talk" between sensors
 
-**Observed Behavior:**
-```
-Press Index Finger →
-  Index:  max= 6  mean= 0.6  ← Expected
-  Middle: max= 0  mean= 0.0  ← Correct (but sometimes shows small values)
-  Thumb:  max= 3  mean= 0.2  ← Unexpected cross-talk
-```
+**Root Cause (FOUND):**
+1. **Off-by-one indexing error** - Documentation uses 1-based indexing, Python uses 0-based
+2. **All sensors reading wrong bytes** - Code used `frame_data[df_index]` instead of `frame_data[df_index - 1]`
+3. **Inaccurate legacy mapping** - Original CSV had estimated indices, not actual hardware-verified values
 
-**Root Cause (Analysis):**
-1. **Data frame index assignment** - May not be 100% accurate from documentation
-2. **Hardware cross-talk** - Less likely, but possible in fabric sensor array
-3. **Shared sensor indices** - Some sensors may share data frame positions
+**Solution:**
+1. ✅ **Fixed indexing offset** - Added `array_index = df_index - 1` conversion in all code
+2. ✅ **Manual index verification** - Created GUI tool to edit and verify each sensor's data_frame_index
+3. ✅ **Hardware testing** - User verified all 161 sensors map correctly to physical positions
+4. ✅ **New CSV** - `glove_sensor_map_annotated_w_dataframe_indices.csv` with accurate mappings
 
-**Impact:**
-- Minor accuracy issue, doesn't block normal usage
-- Most noticeable with light touches
-- Heavier pressure shows correct finger isolation
+**Results:**
+- **Before fix:** Strange patterns, wrong regions lighting up
+- **After fix:** Accurate patterns matching actual finger positions
+- Sensor regions now correctly correspond to physical locations on glove
+- System is now ready for accurate gesture recognition and pressure monitoring
+
+**See:** [INDEXING_CONVENTION.md](INDEXING_CONVENTION.md) for complete technical explanation
+
+**Priority:** ✅ **RESOLVED** - Critical fix for sensor accuracy
 
 **Future Work:**
 - Empirical finger isolation testing

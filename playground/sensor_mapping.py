@@ -20,7 +20,8 @@ from typing import Dict, List, Tuple, Optional
 _SCRIPT_DIR = Path(__file__).parent
 
 # Load sensor mapping from CSV
-_SENSOR_MAP_CSV = _SCRIPT_DIR / "glove_sensor_map_with_indices.csv"
+# Updated to use the manually annotated data frame indices
+_SENSOR_MAP_CSV = _SCRIPT_DIR / "glove_sensor_map_annotated_w_dataframe_indices.csv"
 
 def _load_sensor_mapping() -> pd.DataFrame:
     """Load sensor mapping from CSV file"""
@@ -264,26 +265,32 @@ def extract_sensor_values(frame_data):
 def extract_all_sensor_values(frame_data) -> Dict[int, int]:
     """
     Extract values for all sensors using CSV mapping
-    
+
     Args:
         frame_data: List or bytes of length 272
-    
+
     Returns:
         dict: {sensor_id: value} for all assigned sensors
+
+    Note:
+        data_frame_index in CSV uses 1-based indexing (1-272)
+        We convert to 0-based Python array indexing by subtracting 1
     """
     if len(frame_data) < 272:
         raise ValueError(f"Frame data must be 272 bytes, got {len(frame_data)}")
-    
+
     if SENSOR_DATA_ASSIGNED is None:
         return {}
-    
+
     sensor_values = {}
     for _, sensor in SENSOR_DATA_ASSIGNED.iterrows():
         sensor_id = int(sensor['sensor_id'])
         df_index = int(sensor['data_frame_index'])
-        if df_index >= 0 and df_index < len(frame_data):
-            sensor_values[sensor_id] = frame_data[df_index]
-    
+        # Convert 1-based df_index to 0-based array index
+        array_index = df_index - 1
+        if array_index >= 0 and array_index < len(frame_data):
+            sensor_values[sensor_id] = frame_data[array_index]
+
     return sensor_values
 
 def extract_imu_data(frame_data):
@@ -323,31 +330,37 @@ def get_region_for_index(data_index):
 def get_region_statistics(frame_data, region: str) -> Optional[Dict]:
     """
     Get statistics for all sensors in a region
-    
+
     Args:
         frame_data: 272-byte frame
         region: Region name (e.g., 'thumb_tip', 'palm')
-    
+
     Returns:
         dict with keys: max, mean, min, active_count, sensor_count
         or None if region not found or no data
+
+    Note:
+        data_frame_index in CSV uses 1-based indexing (1-272)
+        We convert to 0-based Python array indexing by subtracting 1
     """
     if SENSOR_DATA_ASSIGNED is None:
         return None
-    
+
     sensors = get_sensors_by_region(region)
     if not sensors:
         return None
-    
+
     values = []
     for sensor in sensors:
         df_index = int(sensor['data_frame_index'])
-        if df_index >= 0 and df_index < len(frame_data):
-            values.append(frame_data[df_index])
-    
+        # Convert 1-based df_index to 0-based array index
+        array_index = df_index - 1
+        if array_index >= 0 and array_index < len(frame_data):
+            values.append(frame_data[array_index])
+
     if not values:
         return None
-    
+
     return {
         'max': int(max(values)),
         'min': int(min(values)),

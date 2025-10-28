@@ -71,6 +71,17 @@ Based on documentation and observation:
 ### Understanding the Mapping
 The documentation provides **data indices** (byte positions in the 272-byte frame) for each sensor region. These are NOT sensor IDs, but rather the **actual byte offsets** where sensor data is stored.
 
+### ⚠️ **CRITICAL: Indexing Convention**
+The hardware documentation uses **1-based indexing** (1-272), but Python arrays use **0-based indexing** (0-271).
+
+**All code now correctly converts:**
+```python
+array_index = data_frame_index - 1  # Convert 1-based to 0-based
+sensor_value = frame_data[array_index]
+```
+
+See **[docs/INDEXING_CONVENTION.md](docs/INDEXING_CONVENTION.md)** for complete explanation of this critical fix.
+
 ### Glove Regions (by data index)
 - **小拇指 (Little Finger):** 
   - Data indices: [31, 30, 29, 15, 14, 13, 255, 254, 253, 239, 238, 237]
@@ -128,11 +139,12 @@ cd playground
 - **`sensor_mapping.py`** - Sensor-to-index mapping
 
 ### 🏷️ **Sensor Mapping Tools**
-- **`annotate_sensors.py`** - Interactive region annotation tool
+- **`annotate_sensors.py`** - Interactive region annotation tool with data_frame_index editor
 - **`assign_dataframe_indices.py`** - Data frame index assignment tool
 - **`glove_sensor_map_refined.csv`** - Sensor coordinates (165 sensors)
 - **`glove_sensor_map_annotated.csv`** - Sensors with regions (11 regions)
-- **`glove_sensor_map_with_indices.csv`** - Complete mapping (sensor_id → data_frame_index)
+- **`glove_sensor_map_annotated_w_dataframe_indices.csv`** - ⭐ **ACTIVE** Complete mapping with manually verified indices
+- **`glove_sensor_map_with_indices.csv`** - Legacy mapping (deprecated)
 - **`run_annotation_tool.sh`** - Quick launcher for annotation tool
 
 ### 📚 **Documentation**
@@ -140,6 +152,7 @@ cd playground
   - **`STATUS.md`** - ⭐ Current status and progress
   - **`QUICK_START.md`** - Quick reference guide
   - **`KNOWN_LIMITATIONS.md`** - Performance notes
+  - **`INDEXING_CONVENTION.md`** - ⭐ **CRITICAL** Off-by-one indexing fix explanation
   - **`DOCUMENTATION_INDEX.md`** - Complete navigation
   - **`annotation/`** - Sensor mapping documentation
     - Annotation guides and workflows

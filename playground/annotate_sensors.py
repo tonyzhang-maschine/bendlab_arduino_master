@@ -11,10 +11,10 @@ from pathlib import Path
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QComboBox, QFileDialog, QMessageBox,
-    QGroupBox, QGridLayout, QListWidget, QSplitter
+    QGroupBox, QGridLayout, QListWidget, QSplitter, QLineEdit
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QIntValidator
 import pyqtgraph as pg
 
 
@@ -91,7 +91,11 @@ class SensorAnnotationTool(QMainWindow):
         self.sensor_positions = None
         self.sensor_ids = None
         self.assignments = {}  # sensor_id -> region
+        self.dataframe_indices = {}  # sensor_id -> data_frame_index
         self.history = []  # For undo
+
+        # Inspector state
+        self.selected_sensor_id = None  # Currently inspected sensor
         
         # Current state
         self.current_region = 'thumb'
@@ -194,7 +198,60 @@ class SensorAnnotationTool(QMainWindow):
         
         selection_group.setLayout(selection_layout)
         layout.addWidget(selection_group)
-        
+
+        # Sensor Inspector Panel
+        inspector_group = QGroupBox("Sensor Inspector")
+        inspector_layout = QVBoxLayout()
+
+        # Info labels
+        self.inspector_sensor_id_label = QLabel("Sensor ID: --")
+        self.inspector_position_label = QLabel("Position: --")
+        self.inspector_region_label = QLabel("Region: --")
+
+        inspector_layout.addWidget(self.inspector_sensor_id_label)
+        inspector_layout.addWidget(self.inspector_position_label)
+        inspector_layout.addWidget(self.inspector_region_label)
+
+        # Add spacing
+        inspector_layout.addSpacing(10)
+
+        # Data frame index editor
+        index_label = QLabel("Data Frame Index:")
+        index_label.setStyleSheet("font-weight: bold;")
+        inspector_layout.addWidget(index_label)
+
+        # Input field with validator
+        self.inspector_index_input = QLineEdit()
+        self.inspector_index_input.setPlaceholderText("Enter index (-1 to 255)")
+        validator = QIntValidator(-1, 255)
+        self.inspector_index_input.setValidator(validator)
+        inspector_layout.addWidget(self.inspector_index_input)
+
+        # Buttons
+        buttons_layout = QHBoxLayout()
+
+        self.inspector_update_btn = QPushButton("Update")
+        self.inspector_update_btn.clicked.connect(self.on_index_update_clicked)
+        buttons_layout.addWidget(self.inspector_update_btn)
+
+        self.inspector_unassign_btn = QPushButton("Set Unassigned (-1)")
+        self.inspector_unassign_btn.clicked.connect(self.on_set_unassigned_clicked)
+        buttons_layout.addWidget(self.inspector_unassign_btn)
+
+        inspector_layout.addLayout(buttons_layout)
+
+        # Status label
+        self.inspector_status_label = QLabel("")
+        self.inspector_status_label.setWordWrap(True)
+        self.inspector_status_label.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        inspector_layout.addWidget(self.inspector_status_label)
+
+        inspector_group.setLayout(inspector_layout)
+        layout.addWidget(inspector_group)
+
+        # Initially disable inspector (no sensor selected)
+        self.set_inspector_enabled(False)
+
         # Region assignment - Organized by finger
         region_group = QGroupBox("Assign Selected to Region")
         region_layout = QVBoxLayout()
@@ -326,6 +383,15 @@ class SensorAnnotationTool(QMainWindow):
                 # Initialize all as unassigned
                 for sensor_id in self.df['sensor_id']:
                     self.assignments[sensor_id] = 'unassigned'
+
+            # Load existing data_frame_index values if present
+            if 'data_frame_index' in self.df.columns:
+                for _, row in self.df.iterrows():
+                    self.dataframe_indices[row['sensor_id']] = int(row['data_frame_index'])
+            else:
+                # Initialize all as -1 (unassigned)
+                for sensor_id in self.df['sensor_id']:
+                    self.dataframe_indices[sensor_id] = -1
             
             self.sensor_positions = self.df[['x_mm', 'y_mm']].values
             self.sensor_ids = self.df['sensor_id'].values
@@ -341,23 +407,23 @@ class SensorAnnotationTool(QMainWindow):
         """Plot all sensors with colors based on region assignment"""
         if self.df is None:
             return
-        
+
         self.plot_widget.clear()
-        
+
         # Create scatter plot for each region
         self.scatter_items = {}
-        
+
         for region_key, region_info in REGIONS.items():
             # Get sensors assigned to this region
-            sensor_mask = [self.assignments.get(sid, 'unassigned') == region_key 
+            sensor_mask = [self.assignments.get(sid, 'unassigned') == region_key
                           for sid in self.sensor_ids]
-            
+
             if not any(sensor_mask):
                 continue
-            
+
             positions = self.sensor_positions[sensor_mask]
             ids = self.sensor_ids[sensor_mask]
-            
+
             # Create scatter plot
             scatter = pg.ScatterPlotItem(
                 pos=positions,
@@ -368,20 +434,38 @@ class SensorAnnotationTool(QMainWindow):
                 hoverSize=15,
                 tip=None
             )
-            
+
             # Add tooltips with sensor IDs
             scatter.sigClicked.connect(self.on_point_clicked)
-            
+
             self.plot_widget.addItem(scatter)
             self.scatter_items[region_key] = scatter
-        
+
+        # Add visual markers for sensors with data_frame_index == -1
+        unassigned_indices_positions = []
+        for i, sid in enumerate(self.sensor_ids):
+            if self.dataframe_indices.get(sid, -1) == -1:
+                unassigned_indices_positions.append(self.sensor_positions[i])
+
+        if unassigned_indices_positions:
+            # Add special markers (hollow squares) for unassigned data_frame_index
+            unassigned_scatter = pg.ScatterPlotItem(
+                pos=unassigned_indices_positions,
+                size=18,
+                pen=pg.mkPen('r', width=2, style=Qt.DashLine),
+                brush=None,
+                symbol='s',  # square
+                pxMode=True
+            )
+            self.plot_widget.addItem(unassigned_scatter)
+
         # Add text labels for sensor IDs (every 5th sensor to avoid clutter)
         for i, (sid, pos) in enumerate(zip(self.sensor_ids, self.sensor_positions)):
             if i % 5 == 0:
                 text = pg.TextItem(str(sid), anchor=(0.5, 0.5), color='k')
                 text.setPos(pos[0], pos[1])
                 self.plot_widget.addItem(text)
-        
+
         # Auto-range
         self.plot_widget.autoRange()
     
@@ -432,6 +516,8 @@ class SensorAnnotationTool(QMainWindow):
                     else:
                         # Single selection
                         self.select_sensors([nearest_idx])
+                        # Update inspector for single-click mode
+                        self.update_inspector(nearest_idx)
     
     def on_mouse_moved(self, pos):
         """Handle mouse movement for drag operations"""
@@ -597,20 +683,20 @@ class SensorAnnotationTool(QMainWindow):
         if not hasattr(self, 'selected_sensors') or not self.selected_sensors:
             QMessageBox.warning(self, "No Selection", "Please select sensors first")
             return
-        
+
         # Save to history for undo
-        self.history.append(dict(self.assignments))
-        
+        self.save_state_to_history()
+
         # Assign region
         for idx in self.selected_sensors:
             sensor_id = self.sensor_ids[idx]
             self.assignments[sensor_id] = region
-        
+
         # Update display
         self.plot_sensors()
         self.update_statistics()
         self.clear_selection()
-        
+
         region_name = REGIONS[region]['name']
         self.status_label.setText(f"Assigned {len(self.selected_sensors)} sensor(s) to {region_name}")
     
@@ -638,10 +724,24 @@ class SensorAnnotationTool(QMainWindow):
         if not self.history:
             QMessageBox.information(self, "Undo", "Nothing to undo")
             return
-        
-        self.assignments = self.history.pop()
+
+        state = self.history.pop()
+        self.assignments = state['assignments']
+        self.dataframe_indices = state['dataframe_indices']
         self.plot_sensors()
         self.update_statistics()
+
+        # Refresh inspector if a sensor is currently selected
+        if self.selected_sensor_id is not None:
+            # Find the sensor index
+            sensor_idx = None
+            for i, sid in enumerate(self.sensor_ids):
+                if sid == self.selected_sensor_id:
+                    sensor_idx = i
+                    break
+            if sensor_idx is not None:
+                self.update_inspector(sensor_idx)
+
         self.status_label.setText("Undid last assignment")
     
     def clear_all_assignments(self):
@@ -654,10 +754,10 @@ class SensorAnnotationTool(QMainWindow):
         )
         
         if reply == QMessageBox.Yes:
-            self.history.append(dict(self.assignments))
+            self.save_state_to_history()
             for sensor_id in self.assignments:
                 self.assignments[sensor_id] = 'unassigned'
-            
+
             self.plot_sensors()
             self.update_statistics()
             self.status_label.setText("Cleared all assignments")
@@ -671,45 +771,213 @@ class SensorAnnotationTool(QMainWindow):
         if self.df is None:
             QMessageBox.warning(self, "No Data", "Please load a CSV file first")
             return
-        
-        # Check for unassigned sensors
+
+        # Check for unassigned regions
         unassigned_count = sum(1 for r in self.assignments.values() if r == 'unassigned')
         if unassigned_count > 0:
             reply = QMessageBox.question(
                 self,
                 "Unassigned Sensors",
-                f"{unassigned_count} sensors are still unassigned. Save anyway?",
+                f"{unassigned_count} sensors are still unassigned to regions. Save anyway?",
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.No:
                 return
-        
+
+        # Check for duplicate data_frame_indices (excluding -1)
+        indices = [idx for idx in self.dataframe_indices.values() if idx != -1]
+        duplicate_indices = [idx for idx in set(indices) if indices.count(idx) > 1]
+
+        if duplicate_indices:
+            duplicate_list = ', '.join(map(str, sorted(duplicate_indices)))
+            # Build detailed message showing which sensors have duplicates
+            dup_details = []
+            for dup_idx in sorted(duplicate_indices):
+                sensor_ids = [sid for sid, idx in self.dataframe_indices.items() if idx == dup_idx]
+                dup_details.append(f"  Index {dup_idx}: sensors {', '.join(map(str, sensor_ids))}")
+
+            detail_msg = "\n".join(dup_details)
+
+            reply = QMessageBox.warning(
+                self,
+                "Duplicate Data Frame Indices",
+                f"Warning: Duplicate data_frame_index values found:\n\n{detail_msg}\n\n"
+                f"This may cause data conflicts. Save anyway?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+
+        # Check for unassigned data_frame_indices
+        unassigned_indices_count = sum(1 for idx in self.dataframe_indices.values() if idx == -1)
+        if unassigned_indices_count > 0:
+            reply = QMessageBox.question(
+                self,
+                "Unassigned Data Frame Indices",
+                f"{unassigned_indices_count} sensor(s) have unassigned data_frame_index (-1). Save anyway?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Annotated CSV",
             str(Path(__file__).parent / "glove_sensor_map_annotated.csv"),
             "CSV Files (*.csv)"
         )
-        
+
         if not file_path:
             return
-        
+
         try:
-            # Add region column to dataframe
+            # Add region and data_frame_index columns to dataframe
             self.df['region'] = self.df['sensor_id'].map(self.assignments)
-            
+            self.df['data_frame_index'] = self.df['sensor_id'].map(self.dataframe_indices)
+
             # Save
             self.df.to_csv(file_path, index=False)
-            
+
             QMessageBox.information(
                 self,
                 "Success",
                 f"Saved annotated CSV to:\n{file_path}"
             )
             self.status_label.setText(f"Saved to {Path(file_path).name}")
-            
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save CSV:\n{str(e)}")
+
+    def set_inspector_enabled(self, enabled):
+        """Enable or disable inspector controls"""
+        self.inspector_index_input.setEnabled(enabled)
+        self.inspector_update_btn.setEnabled(enabled)
+        self.inspector_unassign_btn.setEnabled(enabled)
+
+    def update_inspector(self, sensor_idx):
+        """Update inspector panel with sensor information"""
+        if self.df is None or sensor_idx is None:
+            self.set_inspector_enabled(False)
+            self.inspector_sensor_id_label.setText("Sensor ID: --")
+            self.inspector_position_label.setText("Position: --")
+            self.inspector_region_label.setText("Region: --")
+            self.inspector_index_input.clear()
+            self.inspector_status_label.clear()
+            self.selected_sensor_id = None
+            return
+
+        # Get sensor info
+        sensor_id = self.sensor_ids[sensor_idx]
+        position = self.sensor_positions[sensor_idx]
+        region = self.assignments.get(sensor_id, 'unassigned')
+        data_frame_index = self.dataframe_indices.get(sensor_id, -1)
+
+        # Update labels
+        self.inspector_sensor_id_label.setText(f"Sensor ID: {sensor_id}")
+        self.inspector_position_label.setText(f"Position: ({position[0]:.1f}, {position[1]:.1f}) mm")
+        region_name = REGIONS.get(region, {}).get('name', region)
+        self.inspector_region_label.setText(f"Region: {region_name}")
+
+        # Update index input
+        self.inspector_index_input.setText(str(data_frame_index))
+
+        # Check for duplicates and update status
+        self.update_inspector_status(data_frame_index)
+
+        # Enable controls
+        self.set_inspector_enabled(True)
+        self.selected_sensor_id = sensor_id
+
+    def update_inspector_status(self, current_index):
+        """Update inspector status label with validation info"""
+        if current_index == -1:
+            self.inspector_status_label.setText("Status: Unassigned")
+            self.inspector_status_label.setStyleSheet("padding: 5px; background-color: #fff3cd; color: #856404;")
+        else:
+            # Check for duplicates
+            duplicates = self.check_duplicate_index(current_index)
+            if duplicates:
+                # Filter out current sensor
+                other_duplicates = [sid for sid in duplicates if sid != self.selected_sensor_id]
+                if other_duplicates:
+                    dup_str = ', '.join(map(str, other_duplicates))
+                    self.inspector_status_label.setText(f"⚠ Warning: Duplicate! Also used by sensor(s): {dup_str}")
+                    self.inspector_status_label.setStyleSheet("padding: 5px; background-color: #f8d7da; color: #721c24;")
+                else:
+                    self.inspector_status_label.setText("✓ Valid")
+                    self.inspector_status_label.setStyleSheet("padding: 5px; background-color: #d4edda; color: #155724;")
+            else:
+                self.inspector_status_label.setText("✓ Valid")
+                self.inspector_status_label.setStyleSheet("padding: 5px; background-color: #d4edda; color: #155724;")
+
+    def check_duplicate_index(self, index):
+        """Check if index is used by other sensors. Returns list of sensor_ids with this index"""
+        if index == -1:
+            return []
+
+        duplicates = []
+        for sensor_id, idx in self.dataframe_indices.items():
+            if idx == index:
+                duplicates.append(sensor_id)
+
+        return duplicates
+
+    def on_index_update_clicked(self):
+        """Handle Update button click in inspector"""
+        if self.selected_sensor_id is None:
+            return
+
+        # Get and validate input
+        index_text = self.inspector_index_input.text().strip()
+        if not index_text:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid index (-1 to 255)")
+            return
+
+        try:
+            new_index = int(index_text)
+            if new_index < -1 or new_index > 255:
+                QMessageBox.warning(self, "Invalid Range", "Index must be between -1 and 255")
+                return
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid integer")
+            return
+
+        # Update the index
+        self.update_dataframe_index(self.selected_sensor_id, new_index)
+
+    def on_set_unassigned_clicked(self):
+        """Handle Set Unassigned button click"""
+        if self.selected_sensor_id is None:
+            return
+
+        self.update_dataframe_index(self.selected_sensor_id, -1)
+
+    def update_dataframe_index(self, sensor_id, new_index):
+        """Update data_frame_index for a sensor with undo support"""
+        # Save to history
+        self.save_state_to_history()
+
+        # Update index
+        old_index = self.dataframe_indices.get(sensor_id, -1)
+        self.dataframe_indices[sensor_id] = new_index
+
+        # Update inspector display
+        self.inspector_index_input.setText(str(new_index))
+        self.update_inspector_status(new_index)
+
+        # Update visual if unassigned status changed
+        if (old_index == -1) != (new_index == -1):
+            self.plot_sensors()
+
+        # Update status
+        self.status_label.setText(f"Sensor {sensor_id}: data_frame_index set to {new_index}")
+
+    def save_state_to_history(self):
+        """Save current state to history for undo"""
+        self.history.append({
+            'assignments': dict(self.assignments),
+            'dataframe_indices': dict(self.dataframe_indices)
+        })
 
 
 def main():
