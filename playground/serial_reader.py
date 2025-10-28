@@ -93,3 +93,4 @@ class SerialReaderThread(QThread):
             finally:
                 self.serial_conn = None
 
+
