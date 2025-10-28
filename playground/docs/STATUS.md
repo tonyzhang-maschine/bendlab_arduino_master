@@ -347,31 +347,68 @@ HandVisualizer.update_sensors()
 
 ## 🔮 **Next Steps**
 
-### Immediate Priorities (Critical)
-1. ~~**Fix visualization colors** (Issue #1)~~ ✅ **RESOLVED**
-   - ✅ Root cause identified: Color range not scaled to low sensor values
-   - ✅ Dynamic range adjustment implemented
-   - ✅ Low values now produce visible colors (17x brighter)
-   - ✅ Comprehensive tests created and passing
+### ✅ **Exploration Stage - COMPLETED!**
+All critical issues from the exploration phase have been resolved:
+1. ~~**Fix visualization colors** (Issue #1)~~ ✅ **RESOLVED** (v1.5)
+2. ~~**Verify sensor mapping** (Issue #2)~~ ✅ **RESOLVED** (v1.6)
+3. ~~**Investigate GUI freezing** (Issue #3)~~ ✅ **RESOLVED** (v1.3)
+4. ~~**Optimize performance**~~ ✅ **RESOLVED** (v1.3)
 
-2. **Verify sensor mapping** (Issue #2)
-   - Create finger isolation test script
-   - Record which byte indices activate for each finger
-   - Compare with documentation
-   - Update `sensor_mapping.py` if needed
+**System is now production-ready with accurate sensor mapping!**
 
-3. **Investigate GUI freezing** (Issue #3)
-   - Profile GUI performance
-   - Check for blocking operations
-   - Monitor thread activity
-   - Add performance metrics
+---
 
-### Short-term Enhancements
-- [ ] Add data recording functionality
-- [ ] Implement playback mode
-- [ ] Create calibration routine
-- [ ] Add threshold adjustments
-- [ ] Improve sensor position layout
+### 🎯 **Next Stage: Production Optimization & Integration**
+
+#### **Priority 0: Performance Enhancement** (HIGH)
+**Goal:** Handle 100Hz+ data acquisition
+- **Current:** ~76 Hz capture, 10 Hz display
+- **Target:** 100+ Hz with low latency
+- **Tasks:**
+  - Profile processing pipeline for bottlenecks
+  - Optimize frame processing code
+  - Consider multiprocessing for data handling
+  - Reduce queue latency further
+  - Benchmark and validate throughput
+
+#### **Priority 1: LSL Integration** (HIGH)
+**Goal:** Enable real-time streaming to external tools
+- **What:** Lab Streaming Layer (LSL) output
+- **Why:** Integration with neuroscience/HCI ecosystems
+- **Tasks:**
+  - Install and test pylsl
+  - Create LSL outlet for sensor data
+  - Stream pressure values in real-time
+  - Add metadata (sensor IDs, regions, positions)
+  - Test with LSL viewer applications
+  - Document LSL stream format
+
+#### **Priority 2: Code Organization & Refactoring** (MEDIUM)
+**Goal:** Prepare codebase for next development phase
+- **Current:** Exploratory structure in `playground/`
+- **Target:** Clean, maintainable, well-documented codebase
+- **Tasks:**
+  - Reorganize folder structure
+    - Separate core modules, tools, tests, docs
+    - Move archive/deprecated code clearly
+  - Improve code modularity
+    - Extract reusable components
+    - Clarify interfaces between modules
+  - Add comprehensive documentation
+    - Module-level docstrings
+    - API documentation
+    - Architecture diagrams
+  - Prepare for LLM-assisted refactoring
+    - Clear naming conventions
+    - Consistent code style
+    - Well-organized file structure
+
+#### **Priority 3: Additional Features** (LOW)
+- [ ] Add data recording functionality (CSV/HDF5 format)
+- [ ] Implement playback mode for recorded data
+- [ ] Decode IMU data format (accelerometer/gyroscope)
+- [ ] Create gesture recognition pipeline
+- [ ] Add per-sensor calibration routine
 
 ### Long-term Features
 - [ ] LSL streaming integration

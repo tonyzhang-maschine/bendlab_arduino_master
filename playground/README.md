@@ -280,12 +280,34 @@ cd playground
 - No frame skipping - maintains data stream sequence
 
 ### 🔧 **Next Steps**
+
+#### ✅ **Completed - Exploration Stage**
 1. ~~Debug visualization color update~~ ✅ **COMPLETED** (Priority: HIGH)
 2. ~~Fix GUI freezing~~ ✅ **COMPLETED** (Priority: HIGH)
 3. ~~Optimize performance~~ ✅ **COMPLETED** (v1.3 - Priority: HIGH)
-4. Verify sensor mapping with finger isolation tests (Priority: MEDIUM)
-5. Add data recording functionality (Priority: MEDIUM)
-6. Decode IMU data format (Priority: LOW)
+4. ~~Verify sensor mapping~~ ✅ **COMPLETED** (v1.6 - Priority: HIGH)
+
+#### 🎯 **Next Stage - Production Optimization & Integration**
+0. **Performance Enhancement** (Priority: HIGH)
+   - Handle 100Hz+ data acquisition (currently ~76 Hz)
+   - Optimize processing pipeline for higher throughput
+   - Profile and eliminate bottlenecks
+
+1. **LSL Integration** (Priority: HIGH)
+   - Implement Lab Streaming Layer (LSL) output
+   - Enable integration with other neuroscience/HCI tools
+   - Support real-time streaming for external analysis
+
+2. **Code Organization & Refactoring** (Priority: MEDIUM)
+   - Reorganize folder structure for better readability
+   - Improve modularity and separation of concerns
+   - Add comprehensive code documentation
+   - Prepare codebase for LLM-assisted refactoring
+
+3. **Additional Features** (Priority: LOW)
+   - Add data recording functionality
+   - Decode IMU data format
+   - Implement gesture recognition pipeline
 
 ---
 
