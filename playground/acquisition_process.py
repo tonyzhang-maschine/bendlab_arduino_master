@@ -190,11 +190,13 @@ class AcquisitionProcess:
             serial_conn.reset_input_buffer()
 
             # Main acquisition loop
+            bytes_read = 0
             while not stop_event.is_set():
                 try:
                     # Read available data
                     if serial_conn.in_waiting > 0:
                         data = serial_conn.read(serial_conn.in_waiting)
+                        bytes_read += len(data)
 
                         # Parse into frames
                         frames = parser.add_data(data)
@@ -218,7 +220,7 @@ class AcquisitionProcess:
                                 pass
                     else:
                         # Small sleep to prevent busy-waiting
-                        time.sleep(0.0001)  # 100 microseconds
+                        time.sleep(0.001)  # 1 millisecond
 
                     # Periodic statistics reporting
                     current_time = time.time()
@@ -237,7 +239,8 @@ class AcquisitionProcess:
                             'elapsed_time': elapsed,
                             'capture_rate_hz': rate,
                             'queue_depth': queue_depth,
-                            'timestamp': current_time
+                            'timestamp': current_time,
+                            'bytes_read': bytes_read
                         }
 
                         # Non-blocking stats update
@@ -334,8 +337,11 @@ def main():
             stats = acq.get_stats(block=False)
             if stats:
                 queue_str = "N/A" if stats['queue_depth'] == -1 else str(stats['queue_depth'])
+                bytes_read = stats.get('bytes_read', 0)
+                kbps = (bytes_read * 8 / 1000 / stats['elapsed_time']) if stats['elapsed_time'] > 0 else 0
                 print(f"[Stats] Capture: {stats['capture_rate_hz']:.1f} Hz | "
-                      f"Queue: {queue_str}")
+                      f"Queue: {queue_str} | "
+                      f"Bytes: {bytes_read} ({kbps:.1f} kbps)")
 
     except KeyboardInterrupt:
         print("\n\nStopping...")
