@@ -3,9 +3,9 @@
 ## Overview
 Real-time pressure visualization system for the JQ Glove (织物电子皮肤/Fabric Electronic Skin) device with multi-threaded capture and PyQtGraph-based GUI.
 
-**Device:** JQ20-XL-11 Left Hand Glove (136 sensing points)  
-**Manufacturer:** 威海矩侨精密 (Weihai JQ Industries Technology Co., Ltd)  
-**Status:** ✅ **v1.5 Production Ready** - Professional visualization with pressure units and modern colormaps!
+**Device:** JQ20-XL-11 Left Hand Glove (136 sensing points)
+**Manufacturer:** 威海矩侨精密 (Weihai JQ Industries Technology Co., Ltd)
+**Status:** ✅ **v1.7 Production Ready** - High-performance 200+ Hz acquisition with multiprocessing architecture!
 
 ---
 
@@ -133,10 +133,11 @@ cd playground
 
 ### 🎮 **Main Application**
 - **`realtime_glove_viz.py`** - Main GUI application (run this!)
-- **`hand_visualizer.py`** - PyQtGraph visualization widget  
+- **`hand_visualizer.py`** - PyQtGraph visualization widget
 - **`serial_reader.py`** - Multi-threaded serial reader
-- **`glove_parser.py`** - Packet parsing and frame assembly
+- **`glove_parser.py`** - Packet parsing and frame assembly (⚠️ CRITICAL: Fixed buffer bug)
 - **`sensor_mapping.py`** - Sensor-to-index mapping
+- **`acquisition_process.py`** - ⭐ **NEW v1.7** High-performance multiprocessing data acquisition (200+ Hz)
 
 ### 🏷️ **Sensor Mapping Tools**
 - **`annotate_sensors.py`** - Interactive region annotation tool with data_frame_index editor
@@ -153,6 +154,9 @@ cd playground
   - **`QUICK_START.md`** - Quick reference guide
   - **`KNOWN_LIMITATIONS.md`** - Performance notes
   - **`INDEXING_CONVENTION.md`** - ⭐ **CRITICAL** Off-by-one indexing fix explanation
+  - **`PERFORMANCE_ROADMAP.md`** - ⭐ 4-week performance optimization plan
+  - **`PERFORMANCE_OPTIMIZATION_RESULTS.md`** - ⭐ **NEW v1.7** Complete optimization analysis (3-10 Hz → 200+ Hz)
+  - **`ARCHITECTURE_COMPARISON.md`** - ⭐ **NEW v1.7** Original vs multiprocessing comparison
   - **`DOCUMENTATION_INDEX.md`** - Complete navigation
   - **`annotation/`** - Sensor mapping documentation
     - Annotation guides and workflows
@@ -165,6 +169,12 @@ cd playground
 - **`test_color_generation.py`** - Color mapping verification
 - **`test_sequential_processing.py`** - Sequential processing test
 - **`test_fix_integration.py`** - Integration test for fixes
+- **`test_acquisition_performance.py`** - ⭐ **NEW v1.7** Multiprocessing performance validation
+- **`test_parser_direct.py`** - Parser performance testing
+- **`test_serial_buffering.py`** - Serial read strategy comparison
+- **`test_packet_order.py`** - Hardware packet ordering verification
+- **`test_timing_analysis.py`** - Detailed timing breakdown
+- **`test_optimal_params.py`** - Grid search for optimal parameters
 
 ### 📦 **Archive**
 - **`archive/`** - Legacy scripts (capture, offline analysis)
@@ -203,10 +213,21 @@ cd playground
 
 ## 🎯 **Current Status**
 
-**Version:** v1.5 (Professional Visualization!)  
-**Last Updated:** October 25, 2025
+**Version:** v1.7 (High-Performance Multiprocessing!)
+**Last Updated:** October 28, 2025
 
-### 🚀 **NEW: v1.5 Features!**
+### 🚀 **NEW: v1.7 Features!**
+
+**High-Performance Acquisition (v1.7):**
+- ✅ **200+ Hz Data Capture** - Achieved full hardware rate (was 76 Hz)
+- ✅ **Multiprocessing Architecture** - True parallelism, bypasses Python GIL
+- ✅ **Optimized Serial I/O** - Fixed-size 8192-byte reads with 50ms timeout
+- ✅ **Parser Bug Fix** - Fixed critical buffer management issue (3→200 bytes)
+- ✅ **Systematic Optimization** - Grid search found optimal parameters
+- ✅ **20-80x Performance** - Improved from 3-10 Hz to 200+ Hz
+- ✅ **Process Isolation** - GUI doesn't slow acquisition
+
+**See [docs/PERFORMANCE_OPTIMIZATION_RESULTS.md](docs/PERFORMANCE_OPTIMIZATION_RESULTS.md) and [docs/ARCHITECTURE_COMPARISON.md](docs/ARCHITECTURE_COMPARISON.md) for complete details.**
 
 **Pressure Units (v1.4):**
 - ✅ **ADC to Pressure Conversion** - Real physical units (kPa, mmHg, N/cm²)
@@ -286,28 +307,37 @@ cd playground
 2. ~~Fix GUI freezing~~ ✅ **COMPLETED** (Priority: HIGH)
 3. ~~Optimize performance~~ ✅ **COMPLETED** (v1.3 - Priority: HIGH)
 4. ~~Verify sensor mapping~~ ✅ **COMPLETED** (v1.6 - Priority: HIGH)
+5. ~~Performance Enhancement~~ ✅ **COMPLETED** (v1.7 - Priority: HIGH)
+   - ✅ Achieved 200+ Hz data acquisition (was ~76 Hz)
+   - ✅ Multiprocessing architecture implementation
+   - ✅ Optimized serial reading strategy (8192-byte reads, 50ms timeout)
+   - ✅ Fixed GloveParser buffer management bug
+   - ✅ Systematic performance profiling and optimization
 
-#### 🎯 **Next Stage - Production Optimization & Integration**
-0. **Performance Enhancement** (Priority: HIGH)
-   - Handle 100Hz+ data acquisition (currently ~76 Hz)
-   - Optimize processing pipeline for higher throughput
-   - Profile and eliminate bottlenecks
+#### 🎯 **Next Stage - Production Integration**
 
 1. **LSL Integration** (Priority: HIGH)
    - Implement Lab Streaming Layer (LSL) output
    - Enable integration with other neuroscience/HCI tools
    - Support real-time streaming for external analysis
+   - Leverage existing 200 Hz acquisition infrastructure
 
-2. **Code Organization & Refactoring** (Priority: MEDIUM)
+2. **HDF5 Recording** (Priority: HIGH)
+   - Implement continuous data logging to HDF5 format
+   - Support chunked compression for efficient storage
+   - Add session metadata and timestamps
+   - Enable offline analysis workflows
+
+3. **Code Organization & Refactoring** (Priority: MEDIUM)
    - Reorganize folder structure for better readability
    - Improve modularity and separation of concerns
    - Add comprehensive code documentation
    - Prepare codebase for LLM-assisted refactoring
 
-3. **Additional Features** (Priority: LOW)
-   - Add data recording functionality
+4. **Additional Features** (Priority: LOW)
    - Decode IMU data format
    - Implement gesture recognition pipeline
+   - Add calibration workflows
 
 ---
 

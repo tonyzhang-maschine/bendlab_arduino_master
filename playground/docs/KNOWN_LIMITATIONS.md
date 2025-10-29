@@ -1,14 +1,26 @@
 # Known Limitations - JQ Glove Real-time Visualization
 
-**Version:** MVP v1.3  
-**Last Updated:** October 25, 2025  
-**Status:** ✅ **RESOLVED** - All major limitations fixed in v1.3!
+**Version:** v1.7
+**Last Updated:** October 28, 2025
+**Status:** ✅ **MAJOR BREAKTHROUGH** - Achieved 200+ Hz acquisition (v1.7)!
 
 ---
 
-## ✅ **RESOLVED in v1.3** (Previously Known Limitations)
+## ✅ **RESOLVED in v1.7** - High-Performance Acquisition
 
-**All major performance issues have been fixed! See [PERFORMANCE_OPTIMIZATION_v1.3.md](PERFORMANCE_OPTIMIZATION_v1.3.md) for details.**
+**Achieved full hardware rate (200+ Hz) through systematic optimization! See [PERFORMANCE_OPTIMIZATION_RESULTS.md](PERFORMANCE_OPTIMIZATION_RESULTS.md) for complete details.**
+
+### Performance Improvements
+- **Data acquisition:** 3-10 Hz → **200+ Hz** (20-80x improvement)
+- **Serial I/O strategy:** Optimized to 8192-byte reads with 50ms timeout
+- **Parser bug:** Fixed critical buffer management issue
+- **Architecture:** Multiprocessing for true parallelism
+
+---
+
+## ✅ **RESOLVED in v1.3** - Visualization Performance
+
+**All major GUI performance issues have been fixed! See [PERFORMANCE_OPTIMIZATION_v1.3.md](PERFORMANCE_OPTIMIZATION_v1.3.md) for details.**
 
 ---
 

@@ -79,9 +79,10 @@ class GloveParser:
             # Find delimiter
             delim_pos = self.find_delimiter(self.buffer)
             if delim_pos == -1:
-                # No delimiter found, keep last 3 bytes in case delimiter is split
-                if len(self.buffer) > 3:
-                    self.buffer = self.buffer[-3:]
+                # No delimiter found - keep buffer as is for next add_data() call
+                # Maximum packet size is 150 bytes, so keep up to 200 bytes to handle partial packets
+                if len(self.buffer) > 200:
+                    self.buffer = self.buffer[-200:]
                 break
             
             # Remove data before delimiter

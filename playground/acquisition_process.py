@@ -37,7 +37,7 @@ class AcquisitionProcess:
         port: str,
         baudrate: int = 921600,
         queue_maxsize: int = 1000,  # 5 seconds at 200 Hz
-        timeout: float = 1.0
+        timeout: float = 0.05  # 50ms timeout optimized for 200+ Hz
     ):
         """
         Initialize acquisition process.
@@ -191,11 +191,12 @@ class AcquisitionProcess:
 
             # Main acquisition loop
             bytes_read = 0
+            READ_SIZE = 8192  # Optimized for 200+ Hz (based on empirical testing)
             while not stop_event.is_set():
                 try:
-                    # Read available data
-                    if serial_conn.in_waiting > 0:
-                        data = serial_conn.read(serial_conn.in_waiting)
+                    # Read fixed-size chunks (better than in_waiting on macOS)
+                    data = serial_conn.read(READ_SIZE)
+                    if data:
                         bytes_read += len(data)
 
                         # Parse into frames
@@ -218,9 +219,6 @@ class AcquisitionProcess:
                                 # Queue full - this shouldn't happen with large queue
                                 # but we don't want to block acquisition
                                 pass
-                    else:
-                        # Small sleep to prevent busy-waiting
-                        time.sleep(0.001)  # 1 millisecond
 
                     # Periodic statistics reporting
                     current_time = time.time()
