@@ -242,3 +242,4 @@ max_sensor_id = max(thumb_values, key=thumb_values.get)
 **Questions?** See `docs/SENSOR_MAPPING_UPGRADE.md`
 
 
+
