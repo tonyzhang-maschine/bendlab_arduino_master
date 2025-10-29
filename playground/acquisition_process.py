@@ -141,8 +141,16 @@ class AcquisitionProcess:
         return self.process is not None and self.process.is_alive()
 
     def get_queue_size(self) -> int:
-        """Get current queue depth."""
-        return self.frame_queue.qsize()
+        """
+        Get current queue depth.
+
+        Note: Returns -1 on macOS where qsize() is not implemented.
+        """
+        try:
+            return self.frame_queue.qsize()
+        except NotImplementedError:
+            # macOS doesn't implement qsize()
+            return -1
 
     @staticmethod
     def _acquisition_loop(
@@ -218,11 +226,17 @@ class AcquisitionProcess:
                         elapsed = current_time - start_time
                         rate = frame_count / elapsed if elapsed > 0 else 0
 
+                        # Get queue depth (returns -1 on macOS)
+                        try:
+                            queue_depth = frame_queue.qsize()
+                        except NotImplementedError:
+                            queue_depth = -1  # Not available on macOS
+
                         stats = {
                             'frame_count': frame_count,
                             'elapsed_time': elapsed,
                             'capture_rate_hz': rate,
-                            'queue_depth': frame_queue.qsize(),
+                            'queue_depth': queue_depth,
                             'timestamp': current_time
                         }
 
@@ -306,9 +320,12 @@ def main():
                     rate = frame_count / elapsed if elapsed > 0 else 0
                     queue_depth = acq.get_queue_size()
 
+                    # Format queue depth (handle -1 on macOS)
+                    queue_str = "N/A" if queue_depth == -1 else f"{queue_depth:4d}"
+
                     print(f"Frames: {frame_count:6d} | "
                           f"Rate: {rate:6.1f} Hz | "
-                          f"Queue: {queue_depth:4d} | "
+                          f"Queue: {queue_str:>4s} | "
                           f"Time: {elapsed:6.1f}s")
 
                     last_display = current_time
@@ -316,8 +333,9 @@ def main():
             # Check for stats updates
             stats = acq.get_stats(block=False)
             if stats:
+                queue_str = "N/A" if stats['queue_depth'] == -1 else str(stats['queue_depth'])
                 print(f"[Stats] Capture: {stats['capture_rate_hz']:.1f} Hz | "
-                      f"Queue: {stats['queue_depth']}")
+                      f"Queue: {queue_str}")
 
     except KeyboardInterrupt:
         print("\n\nStopping...")
